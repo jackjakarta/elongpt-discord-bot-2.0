@@ -5,7 +5,8 @@ from discord.ext import commands
 from httpx import ConnectError
 
 from .ai.chat import ChatGPT, Ollama
-from .api import db_create_completion
+from .ai.image import ImageDallE
+from .api import db_create_completion, s3_save_image
 from .utils import create_embed
 from .utils.settings import OLLAMA_MODEL
 
@@ -90,3 +91,31 @@ async def ollama(
         description = f"Connection to Model failed. Error: {e}"
         embed = create_embed(title="Model Connection Error:", description=description)
         await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="imagine", description="Generate an image with Dalle-E 3")
+@discord.app_commands.describe(
+    description="The description of the image you want to generate"
+)
+async def imagine(
+    interaction: discord.Interaction,
+    description: str,
+):
+    await interaction.response.defer()
+
+    try:
+        ai = ImageDallE()
+        prompt = description
+        ai.generate_image(prompt)
+
+        await interaction.followup.send(ai.image_url)
+
+        saved_image = s3_save_image(
+            image_url=ai.image_url, discord_user=str(interaction.user), prompt=prompt
+        )
+        print(saved_image)
+
+    except Exception as e:
+        embed = create_embed(title="Unknown Error:", description=e)
+        await interaction.followup.send(embed=embed)
+        print(f"Unknown Error: {e}")
