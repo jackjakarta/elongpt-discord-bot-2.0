@@ -1,15 +1,7 @@
-import os
-
 from ollama import Client
 from openai import OpenAI
 
-from utils import load_json_chat, save_json
-from utils.settings import (
-    OLLAMA_MODEL,
-    OLLAMA_SERVER,
-    OPENAI_API_KEY,
-    OPENAI_MODEL,
-)
+from bot.utils.settings import OLLAMA_MODEL, OLLAMA_SERVER, OPENAI_API_KEY, OPENAI_MODEL
 
 
 class ChatGPT:
@@ -24,7 +16,7 @@ class ChatGPT:
         self.chats_dir = "CHATS_FOLDER"
         self.chat_file = f"chat_{user_name}.json"
 
-        self.messages = load_json_chat(os.path.join(self.chats_dir, self.chat_file))
+        self.messages = []
 
     def ask(self, prompt, max_tokens: int = 400):
         self.prompt = prompt
@@ -44,21 +36,6 @@ class ChatGPT:
 
         return self.completion.choices[0].message.content
 
-    def save_chat(self):
-        json_data = self.messages
-        file_path = os.path.join(self.chats_dir, self.chat_file)
-        save_json(file_path, json_data)
-
-    def delete_chat(self):
-        os.remove(os.path.join(self.chats_dir, self.chat_file))
-        self.messages.append(
-            {
-                "role": "system",
-                "content": "You are ChatGPT, a large language model trained by OpenAI. Answer as concisely as "
-                "possible.",
-            }
-        )
-
     def get_models(self):
         models_list = self.client.models.list().data
         models = [x.id for x in models_list]
@@ -67,6 +44,8 @@ class ChatGPT:
 
 
 class ImageClassify(ChatGPT):
+    """ImageClassify Class"""
+
     def __init__(self, prompt="Classify this image."):
         super().__init__()
         self.messages = []
@@ -75,7 +54,7 @@ class ImageClassify(ChatGPT):
 
     def classify_image(self, image_url: str):
         self.image_url = image_url
-        self.messages = []  # Clearing messages for each new classification
+        self.messages = []
 
         msg_dict = {
             "role": "user",

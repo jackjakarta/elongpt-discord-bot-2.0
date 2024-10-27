@@ -4,7 +4,7 @@ import discord
 from decouple import config
 from discord.ext import tasks
 
-from commands import bot
+from bot.commands import bot
 
 DISCORD_TOKEN: Final[str] = config("DISCORD_TOKEN")
 
