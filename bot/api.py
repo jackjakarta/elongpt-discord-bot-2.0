@@ -16,7 +16,7 @@ def get_headers() -> dict:
     return headers
 
 
-def db_create_recipe(discord_user: str, ingredients: str, instructions: str):
+async def db_create_recipe(discord_user: str, ingredients: str, instructions: str):
     endpoint_url = get_endpoint("recipes")
     headers = get_headers()
 
@@ -32,7 +32,7 @@ def db_create_recipe(discord_user: str, ingredients: str, instructions: str):
     return response.json()
 
 
-def db_create_completion(discord_user: str, prompt: str, completion: str):
+async def db_create_completion(discord_user: str, prompt: str, completion: str):
     endpoint_url = get_endpoint("completion")
     headers = get_headers()
 
@@ -48,7 +48,9 @@ def db_create_completion(discord_user: str, prompt: str, completion: str):
     return response.json()
 
 
-def db_create_classification(discord_user: str, image_url: str, classification: str):
+async def db_create_classification(
+    discord_user: str, image_url: str, classification: str
+):
     endpoint_url = get_endpoint("classification")
     headers = get_headers()
 
@@ -64,7 +66,7 @@ def db_create_classification(discord_user: str, image_url: str, classification: 
     return response.json()
 
 
-def s3_save_image(discord_user: str, image_url: str, prompt: str):
+async def s3_save_image(discord_user: str, image_url: str, prompt: str):
     endpoint_url = get_endpoint("images")
     headers = get_headers()
 
@@ -80,7 +82,7 @@ def s3_save_image(discord_user: str, image_url: str, prompt: str):
     return response.json()
 
 
-def db_get_user_images(discord_user: str):
+async def db_get_user_images(discord_user: str):
     endpoint_url = get_endpoint("images")
     query_endpoint = f"{endpoint_url}?discordUser={discord_user}"
     headers = get_headers()
