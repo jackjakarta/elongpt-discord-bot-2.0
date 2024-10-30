@@ -48,24 +48,6 @@ async def db_create_completion(discord_user: str, prompt: str, completion: str):
     return response.json()
 
 
-async def db_create_classification(
-    discord_user: str, image_url: str, classification: str
-):
-    endpoint_url = get_endpoint("classification")
-    headers = get_headers()
-
-    data = {
-        "discordUser": discord_user,
-        "imageUrl": image_url,
-        "classification": classification,
-    }
-
-    response = requests.post(url=endpoint_url, headers=headers, json=data)
-    response.raise_for_status()
-
-    return response.json()
-
-
 async def s3_save_image(discord_user: str, image_url: str, prompt: str):
     endpoint_url = get_endpoint("images")
     headers = get_headers()

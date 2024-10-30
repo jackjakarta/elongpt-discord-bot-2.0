@@ -4,16 +4,11 @@ from decouple import config
 from discord.ext import commands
 from httpx import ConnectError
 
-from .ai.chat import ChatGPT, ImageClassify, Ollama
+from .ai.chat import ChatGPT, Ollama
 from .ai.image import ImageDallE
 from .ai.moderation import check_moderate
-from .api import (
-    db_create_classification,
-    db_create_completion,
-    db_create_recipe,
-    s3_save_image,
-)
-from .utils import create_embed
+from .api import db_create_completion, db_create_recipe, s3_save_image
+from .utils import create_embed, image_to_base64
 from .utils.settings import (
     CMC_API_KEY,
     CMC_API_URL,
@@ -44,8 +39,24 @@ async def sync_commands(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="ask", description="Ask a question to ChatGPT")
-@discord.app_commands.describe(question="The question you want to ask")
-async def ask_command(interaction: discord.Interaction, question: str):
+@discord.app_commands.describe(
+    question="The question you want to ask",
+    image1="Image 1",
+    image2="Image 2",
+    image3="Image 3",
+    image4="Image 4",
+    image5="Image 5",
+)
+async def ask_command(
+    interaction: discord.Interaction,
+    question: str,
+    image1: discord.Attachment = None,
+    image2: discord.Attachment = None,
+    image3: discord.Attachment = None,
+    image4: discord.Attachment = None,
+    image5: discord.Attachment = None,
+):
+    files = [image1, image2, image3, image4, image5]
     await interaction.response.defer()
 
     try:
@@ -56,16 +67,22 @@ async def ask_command(interaction: discord.Interaction, question: str):
                 "The question contains inappropriate content. Please try again with a different question."
             )
 
+        base64_images = []
+        for file in files:
+            if file is not None:
+                file_data = await file.read()
+                image_base64 = image_to_base64(file_data)
+                base64_images.append(image_base64)
+
         ai = ChatGPT()
         prompt = question
-        answer = ai.ask(prompt)
+        answer = ai.ask(prompt, files=base64_images)
 
         await interaction.followup.send(
             f"***Answer for {interaction.user.mention}:***\n\n{answer}"
         )
 
-        api_response = await db_create_completion(str(interaction.user), prompt, answer)
-        print(api_response)
+        await db_create_completion(str(interaction.user), prompt, answer)
 
     except requests.exceptions.HTTPError as e:
         embed = create_embed(title="API Error:", description=e)
@@ -103,10 +120,7 @@ async def ollama(
             f"***Answer for {interaction.user.mention}:***\n\n{response}"
         )
 
-        api_response = await db_create_completion(
-            str(interaction.user), prompt, response
-        )
-        print(api_response)
+        await db_create_completion(str(interaction.user), prompt, response)
 
     except ConnectError as e:
         description = f"Connection to Model failed. Error: {e}"
@@ -136,57 +150,9 @@ async def imagine(
         image_url = ai.generate_image(description)
 
         await interaction.followup.send(image_url)
-
-        saved_image = await s3_save_image(
+        await s3_save_image(
             image_url=image_url, discord_user=str(interaction.user), prompt=description
         )
-        print(saved_image)
-
-    except Exception as e:
-        embed = create_embed(title="Unknown Error:", description=e)
-        await interaction.followup.send(embed=embed)
-        print(f"Unknown Error: {e}")
-
-
-@bot.tree.command(name="classify", description="Classify an image with GPT-4o")
-@discord.app_commands.describe(
-    image_url="The URL of the image you want to classify",
-    prompt="Custom prompt for the classification",
-)
-async def classify_command(
-    interaction: discord.Interaction,
-    image_url: str,
-    prompt: str = "Classify this image",
-):
-    await interaction.response.defer()
-
-    try:
-        is_not_safe = await check_moderate(prompt)
-
-        if is_not_safe:
-            return await interaction.followup.send(
-                "The question contains inappropriate content. Please try again with a different question."
-            )
-
-        ai = ImageClassify(prompt=prompt)
-        answer = ai.classify_image(image_url)
-
-        await interaction.followup.send(
-            f"***Image classification for {interaction.user.mention}:***\n\n{answer}"
-        )
-
-        api_response = await db_create_classification(
-            str(interaction.user), image_url, answer
-        )
-        print(api_response)
-
-        if api_response:
-            print("Image classification saved to db.")
-
-    except requests.exceptions.HTTPError as e:
-        embed = create_embed(title="API Error:", description=e)
-        await interaction.followup.send(embed=embed)
-        print(f"API Error: {e}")
 
     except Exception as e:
         embed = create_embed(title="Unknown Error:", description=e)
