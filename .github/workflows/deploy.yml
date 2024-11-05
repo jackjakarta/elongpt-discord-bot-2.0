@@ -61,7 +61,6 @@ jobs:
 
       - name: Build and push docker image
         run: |
-          # Build the Docker image
           docker build --no-cache -t ${{ secrets.DOCKER_USERNAME }}/elongpt-v2:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/elongpt-v2:latest
 
@@ -72,7 +71,6 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Pull and deploy the image with the manually created tag
             docker pull ${{ secrets.DOCKER_USERNAME }}/elongpt-v2:latest
             docker rm -f elongpt-bot || true
             docker run -d -t \
