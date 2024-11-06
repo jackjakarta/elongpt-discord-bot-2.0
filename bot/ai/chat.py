@@ -16,13 +16,7 @@ class ChatGPT:
         self.completion = None
         self.files = []
         self.system_prompt = system_prompt
-
-        self.messages = [
-            {
-                "role": "system",
-                "content": self.system_prompt,
-            }
-        ]
+        self.messages = None
 
     def ask(self, prompt, files: list | None = None, max_tokens: int = 400):
         self.prompt = prompt
@@ -61,7 +55,7 @@ class ChatGPT:
             model=self.model, messages=self.messages, max_tokens=max_tokens
         )
 
-        return self.completion.choices[0].message.content
+        return str(self.completion.choices[0].message.content)
 
     def get_models(self):
         models_list = self.client.models.list().data

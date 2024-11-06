@@ -17,7 +17,6 @@ from .api import (
 from .utils import create_embed, image_to_base64
 from .utils.settings import (
     CMC_API_KEY,
-    CMC_API_URL,
     OLLAMA_MODEL,
     VISION_BRAIN_API_KEY,
     VISION_BRAIN_API_URL,
@@ -82,22 +81,22 @@ async def ask_command(
 
         ai = ChatGPT()
         prompt = question
-        answer = ai.ask(prompt, files=base64_images)
+        response = ai.ask(prompt, files=base64_images if base64_images else None)
 
         await interaction.followup.send(
-            f"***Answer for {interaction.user.mention}:***\n\n{answer}"
+            f"***Answer for {interaction.user.mention}:***\n\n{response}"
         )
 
-        await db_create_completion(str(interaction.user), prompt, answer)
+        await db_create_completion(str(interaction.user), prompt, response)
 
     except requests.exceptions.HTTPError as e:
         embed = create_embed(title="API Error:", description=e)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
         print(f"API Error: {e}")
 
     except Exception as e:
         embed = create_embed(title="Unknown Error:", description=e)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
         print(f"Error: {e}")
 
 
@@ -175,13 +174,14 @@ async def imagine(
 )
 async def price(interaction: discord.Interaction, symbol: str):
     try:
+        api_url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
         crypto_symbol = symbol.upper()
         params = {
             "symbol": crypto_symbol,
             "convert": "USD",
             "CMC_PRO_API_KEY": CMC_API_KEY,
         }
-        response = requests.get(CMC_API_URL, params=params)
+        response = requests.get(api_url, params=params)
 
         if response.status_code != 200:
             embed = create_embed(
