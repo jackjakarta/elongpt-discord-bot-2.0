@@ -2,9 +2,5 @@ env
 .vscode
 .github
 scripts
-.flake8
-.isort.cfg
 .gitignore
-Dockerfile
 README.md
-.env
