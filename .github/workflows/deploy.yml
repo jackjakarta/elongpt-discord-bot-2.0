@@ -1,4 +1,4 @@
-name: Deploy Bot
+name: Build and Deploy Bot
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
         run: |
           flake8 .
 
-  deploy:
+  build:
     runs-on: ubuntu-latest
     environment: production
     needs: checks
@@ -64,6 +64,12 @@ jobs:
           docker build --no-cache -t ${{ secrets.DOCKER_USERNAME }}/elongpt-v2:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/elongpt-v2:latest
 
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: build
+
+    steps:
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v0.1.6
         with:
