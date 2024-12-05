@@ -18,3 +18,4 @@ BACKEND_API_URL: Final[str] = env(
     "BACKEND_API_URL", default="http://127.0.0.1:3000/api"
 )
 BACKEND_API_KEY: Final[str] = env("BACKEND_API_KEY")
+ADMIN_USER_ID: Final[str] = env("ADMIN_USER_ID")
