@@ -1,6 +1,5 @@
 import discord
 import requests
-from decouple import config
 from discord.ext import commands
 from discord.ui import Button, View
 from httpx import ConnectError
@@ -16,6 +15,7 @@ from .api import (
 )
 from .utils import create_embed, image_to_base64
 from .utils.settings import (
+    ADMIN_USER_ID,
     CMC_API_KEY,
     OLLAMA_MODEL,
     VISION_BRAIN_API_KEY,
@@ -23,12 +23,11 @@ from .utils.settings import (
 )
 
 bot = commands.Bot(command_prefix=".", intents=discord.Intents.all())
-admin_user_id = config("ADMIN_USER_ID")
 
 
 @bot.tree.command(name="synccommands", description="Sync commands with discord")
 async def sync_commands(interaction: discord.Interaction):
-    if str(interaction.user.id) != admin_user_id:
+    if str(interaction.user.id) != ADMIN_USER_ID:
         return await interaction.response.send_message(
             "You are not allowed to use this command"
         )
