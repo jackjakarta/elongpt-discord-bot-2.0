@@ -84,8 +84,6 @@ jobs:
             -e OPENAI_MODEL=${{ secrets.OPENAI_MODEL }} \
             -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} \
             -e CMC_PRO_API_KEY=${{ secrets.CMC_PRO_API_KEY }} \
-            -e VISION_BRAIN_API_URL=${{ secrets.VISION_BRAIN_API_URL }} \
-            -e VISION_BRAIN_API_KEY=${{ secrets.VISION_BRAIN_API_KEY }} \
             -e BACKEND_API_URL=${{ secrets.BACKEND_API_URL }} \
             -e BACKEND_API_KEY=${{ secrets.BACKEND_API_KEY }} \
             -e OLLAMA_SERVER=${{ secrets.OLLAMA_SERVER }} \
