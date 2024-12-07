@@ -16,10 +16,10 @@ from .api import (
 from .utils import create_embed, image_to_base64
 from .utils.settings import (
     ADMIN_USER_ID,
+    BACKEND_API_KEY,
+    BACKEND_API_URL,
     CMC_API_KEY,
     OLLAMA_MODEL,
-    VISION_BRAIN_API_KEY,
-    VISION_BRAIN_API_URL,
 )
 
 bot = commands.Bot(command_prefix=".", intents=discord.Intents.all())
@@ -217,11 +217,12 @@ async def tts_command(
     interaction: discord.Interaction, text: str, voice: str = "fable"
 ):
     headers = {
-        "X-Api-Key": VISION_BRAIN_API_KEY,
+        "Authorization": f"Bearer {BACKEND_API_KEY}",
     }
 
     data = {
         "text": text,
+        "discordUser": str(interaction.user),
         "voice": voice,
     }
 
@@ -235,10 +236,12 @@ async def tts_command(
                 "The question contains inappropriate content. Please try again with a different question."
             )
 
-        response = requests.post(VISION_BRAIN_API_URL, data=data, headers=headers)
+        api_url = f"{BACKEND_API_URL}/tts"
+        response = requests.post(api_url, json=data, headers=headers)
         response.raise_for_status()
+
         data = response.json()
-        md_encode = f"[Download File]({data.get('file')})"
+        md_encode = f"[Download File]({data.get('audioUrl')})"
 
         await interaction.followup.send(
             f"***Audio for {interaction.user.mention}:***\n\n***File:*** {md_encode}\n"
