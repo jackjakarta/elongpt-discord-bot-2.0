@@ -211,7 +211,7 @@ async def price(interaction: discord.Interaction, symbol: str):
 
 @bot.tree.command(name="tts", description="Text-to-Speech")
 @discord.app_commands.describe(
-    text="The question you want to ask", voice="The voice you want to use"
+    text="Text to convert", voice="voices: fable, alloy, shimmer"
 )
 async def tts_command(
     interaction: discord.Interaction, text: str, voice: str = "fable"
