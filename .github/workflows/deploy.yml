@@ -88,6 +88,8 @@ jobs:
             -e BACKEND_API_KEY=${{ secrets.BACKEND_API_KEY }} \
             -e OLLAMA_SERVER=${{ secrets.OLLAMA_SERVER }} \
             -e OLLAMA_MODEL=${{ secrets.OLLAMA_MODEL }} \
+            -e KLIKR_API_KEY=${{ secrets.KLIKR_API_KEY }} \
+            -e KLIKR_API_URL=${{ secrets.KLIKR_API_URL }} \
             -e ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }} \
             --restart always \
             --name elongpt-bot \
