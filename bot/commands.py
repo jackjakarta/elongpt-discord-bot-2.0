@@ -19,6 +19,8 @@ from .utils.settings import (
     BACKEND_API_KEY,
     BACKEND_API_URL,
     CMC_API_KEY,
+    KLIKR_API_KEY,
+    KLIKR_API_URL,
     OLLAMA_MODEL,
 )
 
@@ -317,6 +319,36 @@ async def recipe_command(interaction: discord.Interaction, ingredients: str):
         embed = create_embed(title="API Error:", description=e)
         await interaction.followup.send(embed=embed)
         print(f"API Error: {e}")
+
+    except Exception as e:
+        embed = create_embed(title="Unknown Error:", description=e)
+        await interaction.followup.send(embed=embed)
+        print(f"Unknown Error: {e}")
+
+
+@bot.tree.command(name="slink", description="Generate a short link")
+@discord.app_commands.describe(link="Link to shorten")
+async def short_link_command(interaction: discord.Interaction, link: str):
+    await interaction.response.defer()
+
+    headers = {
+        "Authorization": f"Bearer {KLIKR_API_KEY}",
+    }
+
+    data = {
+        "url": link,
+    }
+
+    try:
+        response = requests.post(KLIKR_API_URL, json=data, headers=headers)
+        response.raise_for_status()
+
+        response_data = response.json()
+        short_url = response_data.get("shortUrl")
+
+        await interaction.followup.send(
+            f"***Short Link for {interaction.user.mention}:***\n\n{short_url}"
+        )
 
     except Exception as e:
         embed = create_embed(title="Unknown Error:", description=e)
