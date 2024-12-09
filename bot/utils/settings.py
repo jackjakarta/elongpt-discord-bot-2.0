@@ -9,9 +9,9 @@ CMC_API_KEY: Final[str] = env("CMC_PRO_API_KEY")
 OLLAMA_SERVER: Final[str] = env("OLLAMA_SERVER", default="http://127.0.0.1:11434")
 OLLAMA_MODEL: Final[str] = env("OLLAMA_MODEL", default="orca-mini")
 ADMIN_USER_ID: Final[str] = env("ADMIN_USER_ID")
+KLIKR_API_KEY: Final[str] = env("KLIKR_API_KEY")
+KLIKR_API_URL: Final[str] = env("KLIKR_API_URL")
 BACKEND_API_KEY: Final[str] = env("BACKEND_API_KEY")
 BACKEND_API_URL: Final[str] = env(
     "BACKEND_API_URL", default="http://127.0.0.1:3000/api"
 )
-KLIKR_API_KEY: Final[str] = env("KLIKR_API_KEY")
-KLIKR_API_URL: Final[str] = env("KLIKR_API_URL")

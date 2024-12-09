@@ -345,9 +345,10 @@ async def short_link_command(interaction: discord.Interaction, link: str):
 
         response_data = response.json()
         short_url = response_data.get("shortUrl")
+        md_encode = f"[{short_url.replace("https://", "")}]({short_url})"
 
         await interaction.followup.send(
-            f"***Short Link for {interaction.user.mention}:***\n\n{short_url}"
+            f"***Short Link for {interaction.user.mention}:***\n\n{md_encode}"
         )
 
     except Exception as e:
