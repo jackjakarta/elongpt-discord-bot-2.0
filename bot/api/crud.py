@@ -1,19 +1,6 @@
 import httpx
 
-from .utils.settings import BACKEND_API_KEY, BACKEND_API_URL
-
-
-def get_endpoint(endpoint: str) -> str:
-    return f"{BACKEND_API_URL}/{endpoint}"
-
-
-def get_headers() -> dict:
-    headers = {
-        "Authorization": f"Bearer {BACKEND_API_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    return headers
+from .utils import get_endpoint, get_headers
 
 
 async def db_create_recipe(discord_user: str, ingredients: str, instructions: str):
