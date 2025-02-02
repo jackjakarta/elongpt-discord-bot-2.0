@@ -7,7 +7,7 @@ from httpx import ConnectError
 from .ai.chat import ChatGPT, Ollama
 from .ai.image import ImageDallE
 from .ai.moderation import check_moderate
-from .api import (
+from .api.crud import (
     db_create_completion,
     db_create_recipe,
     db_get_user_images,

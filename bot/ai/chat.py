@@ -1,3 +1,5 @@
+import re
+
 from ollama import Client
 from openai import OpenAI
 
@@ -82,7 +84,14 @@ class Ollama:
 
         self.completion = self.client.chat(model=self.model, messages=self.messages)
         response = self.completion.get("message").get("content")
+        cleaned_response = remove_think_tags(response)
 
-        self.messages.append({"role": "assistant", "content": response})
+        return cleaned_response
 
-        return response
+
+def remove_think_tags(response_content):
+    cleaned_content = re.sub(
+        r"<think>.*?</think>\s*", "", response_content, flags=re.DOTALL
+    )
+
+    return cleaned_content.strip()
