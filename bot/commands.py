@@ -66,9 +66,9 @@ async def ask_command(
     await interaction.response.defer()
 
     try:
-        is_not_safe = await check_moderate(question)
+        is_flagged = await check_moderate(question)
 
-        if is_not_safe:
+        if is_flagged:
             return await interaction.followup.send(
                 "The question contains inappropriate content. Please try again with a different question."
             )
@@ -82,7 +82,9 @@ async def ask_command(
 
         ai = ChatGPT()
         prompt = question
-        response = ai.ask(prompt, files=base64_images if base64_images else None)
+        response = ai.ask(
+            prompt, files=base64_images if len(base64_images) > 0 else None
+        )
 
         await interaction.followup.send(
             f"***Answer for {interaction.user.mention}:***\n\n{response}"
@@ -111,9 +113,9 @@ async def ollama(
     await interaction.response.defer()
 
     try:
-        is_not_safe = await check_moderate(question)
+        is_flagged = await check_moderate(question)
 
-        if is_not_safe:
+        if is_flagged:
             return await interaction.followup.send(
                 "The question contains inappropriate content. Please try again with a different question."
             )
@@ -145,9 +147,9 @@ async def imagine(
     await interaction.response.defer()
 
     try:
-        is_not_safe = await check_moderate(description)
+        is_flagged = await check_moderate(description)
 
-        if is_not_safe:
+        if is_flagged:
             return await interaction.followup.send(
                 "The prompt contains inappropriate content. Please try again with a different prompt."
             )
@@ -231,9 +233,9 @@ async def tts_command(
     await interaction.response.defer()
 
     try:
-        is_not_safe = await check_moderate(text)
+        is_flagged = await check_moderate(text)
 
-        if is_not_safe:
+        if is_flagged:
             return await interaction.followup.send(
                 "The question contains inappropriate content. Please try again with a different question."
             )
