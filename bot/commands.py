@@ -1,4 +1,5 @@
 import discord
+import httpx
 import requests
 from discord.ext import commands
 from discord.ui import Button, View
@@ -82,7 +83,7 @@ async def ask_command(
 
         ai = ChatGPT()
         prompt = question
-        response = ai.ask(
+        response = await ai.ask(
             prompt, files=base64_images if len(base64_images) > 0 else None
         )
 
@@ -155,7 +156,7 @@ async def imagine(
             )
 
         ai = ImageDallE()
-        image_url = ai.generate_image(description)
+        image_url = await ai.generate_image(description)
 
         await interaction.followup.send(image_url)
         await s3_save_image(
@@ -234,25 +235,27 @@ async def tts_command(
 
     try:
         is_flagged = await check_moderate(text)
-
         if is_flagged:
             return await interaction.followup.send(
                 "The question contains inappropriate content. Please try again with a different question."
             )
 
         api_url = f"{BACKEND_API_URL}/tts"
-        response = requests.post(api_url, json=data, headers=headers)
-        response.raise_for_status()
 
-        data = response.json()
-        md_encode = f"[Download File]({data.get('audioUrl')})"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(api_url, json=data, headers=headers)
+            response.raise_for_status()
+            response_data = response.json()
+
+        md_encode = f"[Download File]({response_data.get('audioUrl')})"
 
         await interaction.followup.send(
-            f"***Audio for {interaction.user.mention}:***\n\n***File:*** {md_encode}\n"
-            f"***Text:*** {data.get('text')}"
+            f"***Audio for {interaction.user.mention}:***\n\n"
+            f"***File:*** {md_encode}\n"
+            f"***Text:*** {response_data.get('text')}"
         )
 
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         await interaction.followup.send(f"An error occurred: {e}")
         print(f"An error occurred: {e}")
 
@@ -265,8 +268,12 @@ async def tts_command(
 @discord.app_commands.describe(category="The joke category you want to get")
 async def joke_command(interaction: discord.Interaction, category: str):
     categories_url = "https://api.chucknorris.io/jokes/categories"
-    get_categories = requests.get(categories_url)
-    categories_list = get_categories.json()
+
+    # Fetch categories asynchronously
+    async with httpx.AsyncClient() as client:
+        categories_response = await client.get(categories_url)
+    categories_response.raise_for_status()
+    categories_list = categories_response.json()
     categories = ", ".join(categories_list)
 
     if category not in categories_list:
@@ -276,15 +283,19 @@ async def joke_command(interaction: discord.Interaction, category: str):
 
     try:
         joke_url = f"https://api.chucknorris.io/jokes/random?category={category}"
-        api_response = requests.get(joke_url)
-        api_response.raise_for_status()
-        joke_json = api_response.json()
+
+        async with httpx.AsyncClient() as client:
+            joke_response = await client.get(joke_url)
+        joke_response.raise_for_status()
+        joke_json = joke_response.json()
         joke_content = joke_json.get("value")
 
         view = View()
 
-        async def new_joke_callback(interaction):
-            new_joke_response = requests.get(joke_url)
+        async def new_joke_callback(interaction: discord.Interaction):
+            async with httpx.AsyncClient() as client:
+                new_joke_response = await client.get(joke_url)
+            new_joke_response.raise_for_status()
             new_joke_json = new_joke_response.json()
             new_joke_content = new_joke_json.get("value")
             await interaction.response.edit_message(content=new_joke_content)
@@ -309,7 +320,7 @@ async def recipe_command(interaction: discord.Interaction, ingredients: str):
     try:
         ai = ChatGPT()
         prompt = f"Write a recipe based on these ingredients:\n{ingredients}\n"
-        recipe = ai.ask(prompt=prompt, max_tokens=500)
+        recipe = await ai.ask(prompt=prompt, max_tokens=500)
 
         await interaction.followup.send(
             f"***Recipe for {interaction.user.mention}:***\n\n{recipe}"
@@ -342,19 +353,20 @@ async def short_link_command(interaction: discord.Interaction, link: str):
     }
 
     try:
-        response = requests.post(KLIKR_API_URL, json=data, headers=headers)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(KLIKR_API_URL, json=data, headers=headers)
         response.raise_for_status()
 
         response_data = response.json()
         short_url = response_data.get("shortUrl")
-        md_encode = f"[{short_url.replace("https://", "")}]({short_url})"
+        md_encode = f"[{short_url.replace('https://', '')}]({short_url})"
 
         await interaction.followup.send(
             f"***Short Link for {interaction.user.mention}:***\n\n{md_encode}"
         )
 
     except Exception as e:
-        embed = create_embed(title="Unknown Error:", description=e)
+        embed = create_embed(title="Unknown Error:", description=str(e))
         await interaction.followup.send(embed=embed)
         print(f"Unknown Error: {e}")
 

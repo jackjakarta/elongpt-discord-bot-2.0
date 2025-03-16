@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from bot.utils.settings import OPENAI_API_KEY
 
@@ -7,15 +7,15 @@ class ImageDallE:
     """Image Generation with the OpenAI DALL-E model."""
 
     def __init__(self, model="dall-e-3"):
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
         self.model = model
         self.prompt = None
         self.response = None
         self.image_url = None
 
-    def generate_image(self, prompt):
+    async def generate_image(self, prompt):
         self.prompt = prompt
-        self.response = self.client.images.generate(
+        self.response = await self.client.images.generate(
             model=self.model,
             prompt=self.prompt,
             size="1792x1024",
