@@ -1,7 +1,7 @@
 import re
 
 from ollama import Client
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from bot.utils.settings import OLLAMA_MODEL, OLLAMA_SERVER, OPENAI_API_KEY, OPENAI_MODEL
 
@@ -12,7 +12,7 @@ class ChatGPT:
     """ChatGPT Class"""
 
     def __init__(self, system_prompt=DEFAULT_SYSTEM_PROMPT, model=OPENAI_MODEL):
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
         self.model = model
         self.prompt = None
         self.completion = None
@@ -20,7 +20,7 @@ class ChatGPT:
         self.system_prompt = system_prompt
         self.messages = None
 
-    def ask(self, prompt, files: list | None = None, max_tokens: int = 400):
+    async def ask(self, prompt, files: list | None = None, max_tokens: int = 400):
         self.prompt = prompt
         self.files = files[:5] if files else []
 
@@ -53,7 +53,7 @@ class ChatGPT:
             },
         ]
 
-        self.completion = self.client.chat.completions.create(
+        self.completion = await self.client.chat.completions.create(
             model=self.model, messages=self.messages, max_tokens=max_tokens
         )
 

@@ -1,13 +1,13 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai.types import ModerationCreateResponse
 
 from bot.utils.settings import OPENAI_API_KEY
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 
 async def check_moderate(input_text: str) -> bool:
-    response: ModerationCreateResponse = client.moderations.create(
+    response: ModerationCreateResponse = await client.moderations.create(
         input=input_text, model="text-moderation-stable"
     )
 
