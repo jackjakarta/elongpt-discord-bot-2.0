@@ -23,6 +23,8 @@ from .utils.settings import (
     KLIKR_API_KEY,
     KLIKR_API_URL,
     OLLAMA_MODEL,
+    UTILS_API_KEY,
+    UTILS_API_URL,
 )
 
 bot = commands.Bot(command_prefix=".", intents=discord.Intents.all())
@@ -390,4 +392,35 @@ async def get_images_command(interaction: discord.Interaction):
     except Exception as e:
         embed = create_embed(title="Unknown Error:", description=e)
         await interaction.followup.send(embed=embed, ephemeral=True)
+        print(f"Unknown Error: {e}")
+
+
+@bot.tree.command(name="barca", description="Get a upcoming FC Barcelona matches")
+async def get_barca_matches_command(interaction: discord.Interaction):
+    await interaction.response.defer()
+
+    try:
+        async with httpx.AsyncClient() as client:
+            matches_response = await client.get(
+                UTILS_API_URL, headers={"Authorization": f"Bearer {UTILS_API_KEY}"}
+            )
+
+        matches_response.raise_for_status()
+        matches_list = matches_response.json()
+
+        ai = ChatGPT()
+        prompt = f"Present this information to the user:\n{matches_list}\n"
+        response = await ai.ask(prompt)
+
+        await interaction.followup.send(
+            f"***Upcoming Matches for {interaction.user.mention}:***\n\n{response}"
+        )
+    except requests.exceptions.HTTPError as e:
+        embed = create_embed(title="API Error:", description=e)
+        await interaction.followup.send(embed=embed)
+        print(f"API Error: {e}")
+
+    except Exception as e:
+        embed = create_embed(title="Unknown Error:", description=e)
+        await interaction.followup.send(embed=embed)
         print(f"Unknown Error: {e}")
