@@ -108,7 +108,7 @@ jobs:
             -e KLIKR_API_URL=${{ secrets.KLIKR_API_URL }} \
             -e ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }} \
             -e UTILS_API_URL=${{ secrets.UTILS_API_URL }} \
-            -e UTILS_API_URL=${{ secrets.UTILS_API_URL }} \
+            -e UTILS_API_KEY=${{ secrets.UTILS_API_KEY }} \
             --restart always \
             --name elongpt-bot \
             ${{ secrets.DOCKER_USERNAME }}/elongpt-v2:${{ env.TAG_VERSION }}
