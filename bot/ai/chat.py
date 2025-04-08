@@ -19,15 +19,24 @@ class ChatGPT:
         self.files = []
         self.system_prompt = system_prompt
         self.messages = None
+        self.user_name = None
 
-    async def ask(self, prompt, files: list | None = None, max_tokens: int = 400):
+    async def ask(
+        self,
+        prompt,
+        user_name: str,
+        files: list | None = None,
+        max_tokens: int = 400,
+    ):
         self.prompt = prompt
         self.files = files[:5] if files else []
 
         self.messages = [
             {
                 "role": "system",
-                "content": self.system_prompt,
+                "content": self.system_prompt.format(
+                    user_name=user_name,
+                ),
             },
             {
                 "role": "user",
@@ -59,8 +68,8 @@ class ChatGPT:
 
         return str(self.completion.choices[0].message.content)
 
-    def get_models(self):
-        models_list = self.client.models.list().data
+    async def get_models(self):
+        models_list = await self.client.models.list().data
         models = [x.id for x in models_list]
 
         return sorted(models)
