@@ -93,9 +93,7 @@ async def ask_command(
             files=base64_images if len(base64_images) > 0 else None,
         )
 
-        await interaction.followup.send(
-            f"***You:***{prompt}\n\n{response}"
-        )
+        await interaction.followup.send(f"***You:***{prompt}\n\n{response}")
 
         await db_create_completion(user_name, prompt, response)
 
@@ -241,7 +239,7 @@ async def tts_command(
 
     try:
         is_flagged = await check_moderate(text)
-        
+
         if is_flagged:
             return await interaction.followup.send(
                 "The question contains inappropriate content. Please try again with a different question."

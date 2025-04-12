@@ -23,5 +23,5 @@ class ImageDallE:
             n=1,
         )
         self.image_url = self.response.data[0].url
-        
+
         return self.image_url
