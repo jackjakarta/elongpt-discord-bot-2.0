@@ -93,7 +93,7 @@ async def ask_command(
             files=base64_images if len(base64_images) > 0 else None,
         )
 
-        await interaction.followup.send(f"***You:***{prompt}\n\n{response}")
+        await interaction.followup.send(response)
 
         await db_create_completion(user_name, prompt, response)
 
