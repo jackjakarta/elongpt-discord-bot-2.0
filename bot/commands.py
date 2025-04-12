@@ -391,7 +391,7 @@ async def get_images_command(interaction: discord.Interaction):
                 ephemeral=True,
             )
 
-        for image in user_images:
+        for image in user_images[-10]:
             await interaction.followup.send(image["imageUrl"], ephemeral=True)
 
     except Exception as e:
