@@ -19,7 +19,7 @@ class ImageDallE:
             model=self.model,
             prompt=self.prompt,
             size="1792x1024",
-            quality="hd",
+            quality="standard",
             n=1,
         )
         self.image_url = self.response.data[0].url

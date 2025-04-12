@@ -67,6 +67,7 @@ async def ask_command(
 ):
     files = [image1, image2, image3, image4, image5]
     await interaction.response.defer()
+    user_name = str(interaction.user)
 
     try:
         is_flagged = await check_moderate(question)
@@ -85,15 +86,16 @@ async def ask_command(
 
         ai = ChatGPT()
         prompt = question
+
         response = await ai.ask(
-            prompt, files=base64_images if len(base64_images) > 0 else None
+            prompt,
+            user_name=user_name,
+            files=base64_images if len(base64_images) > 0 else None,
         )
 
-        await interaction.followup.send(
-            f"***Answer for {interaction.user.mention}:***\n\n{response}"
-        )
+        await interaction.followup.send(f"***You:***{prompt}\n\n{response}")
 
-        await db_create_completion(str(interaction.user), prompt, response)
+        await db_create_completion(user_name, prompt, response)
 
     except requests.exceptions.HTTPError as e:
         embed = create_embed(title="API Error:", description=e)
@@ -237,6 +239,7 @@ async def tts_command(
 
     try:
         is_flagged = await check_moderate(text)
+
         if is_flagged:
             return await interaction.followup.send(
                 "The question contains inappropriate content. Please try again with a different question."
@@ -386,7 +389,7 @@ async def get_images_command(interaction: discord.Interaction):
                 ephemeral=True,
             )
 
-        for image in user_images:
+        for image in user_images[-10]:
             await interaction.followup.send(image["imageUrl"], ephemeral=True)
 
     except Exception as e:
