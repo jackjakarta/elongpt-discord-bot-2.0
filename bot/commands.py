@@ -325,7 +325,9 @@ async def recipe_command(interaction: discord.Interaction, ingredients: str):
     try:
         ai = ChatGPT()
         prompt = f"Write a recipe based on these ingredients:\n{ingredients}\n"
-        recipe = await ai.ask(prompt=prompt, max_tokens=500)
+        recipe = await ai.ask(
+            prompt=prompt, user_name=str(interaction.user), max_tokens=500
+        )
 
         await interaction.followup.send(
             f"***Recipe for {interaction.user.mention}:***\n\n{recipe}"
@@ -401,6 +403,7 @@ async def get_images_command(interaction: discord.Interaction):
 @bot.tree.command(name="barca", description="Get a upcoming FC Barcelona matches")
 async def get_barca_matches_command(interaction: discord.Interaction):
     await interaction.response.defer()
+    user_name = str(interaction.user)
 
     try:
         async with httpx.AsyncClient() as client:
@@ -413,7 +416,7 @@ async def get_barca_matches_command(interaction: discord.Interaction):
 
         ai = ChatGPT()
         prompt = f"Present this information to the user:\n{matches_list}\n"
-        response = await ai.ask(prompt)
+        response = await ai.ask(prompt, user_name=user_name)
 
         await interaction.followup.send(
             f"***Upcoming Matches for {interaction.user.mention}:***\n\n{response}"
