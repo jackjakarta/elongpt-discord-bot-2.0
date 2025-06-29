@@ -1,12 +1,12 @@
 import httpx
 
-from .utils import get_endpoint, get_headers
+from .utils import get_endpoint_url, get_request_headers
 
 
 async def db_create_recipe(discord_user: str, ingredients: str, instructions: str):
     async with httpx.AsyncClient() as client:
-        endpoint_url = get_endpoint("recipes")
-        headers = get_headers()
+        endpoint_url = get_endpoint_url("recipes")
+        headers = get_request_headers()
 
         data = {
             "discordUser": discord_user,
@@ -22,8 +22,8 @@ async def db_create_recipe(discord_user: str, ingredients: str, instructions: st
 
 async def db_create_completion(discord_user: str, prompt: str, completion: str):
     async with httpx.AsyncClient() as client:
-        endpoint_url = get_endpoint("completion")
-        headers = get_headers()
+        endpoint_url = get_endpoint_url("completion")
+        headers = get_request_headers()
 
         data = {
             "discordUser": discord_user,
@@ -39,8 +39,8 @@ async def db_create_completion(discord_user: str, prompt: str, completion: str):
 
 async def s3_save_image(discord_user: str, image_url: str, prompt: str):
     async with httpx.AsyncClient() as client:
-        endpoint_url = get_endpoint("images")
-        headers = get_headers()
+        endpoint_url = get_endpoint_url("images")
+        headers = get_request_headers()
 
         data = {
             "discordUser": discord_user,
@@ -56,9 +56,9 @@ async def s3_save_image(discord_user: str, image_url: str, prompt: str):
 
 async def db_get_user_images(discord_user: str):
     async with httpx.AsyncClient() as client:
-        endpoint_url = get_endpoint("images")
+        endpoint_url = get_endpoint_url("images")
+        headers = get_request_headers()
         query_endpoint = f"{endpoint_url}?discordUser={discord_user}"
-        headers = get_headers()
 
         response = await client.get(url=query_endpoint, headers=headers)
         response.raise_for_status()
