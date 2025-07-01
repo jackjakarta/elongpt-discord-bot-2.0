@@ -70,13 +70,6 @@ async def ask_command(
     user_name = str(interaction.user)
 
     try:
-        is_flagged = await check_moderate(question)
-
-        if is_flagged:
-            return await interaction.followup.send(
-                "The question contains inappropriate content. Please try again with a different question."
-            )
-
         base64_images = []
         for file in files:
             if file is not None:
@@ -94,7 +87,6 @@ async def ask_command(
         )
 
         await interaction.followup.send(response)
-
         await db_create_completion(user_name, prompt, response)
 
     except requests.exceptions.HTTPError as e:
