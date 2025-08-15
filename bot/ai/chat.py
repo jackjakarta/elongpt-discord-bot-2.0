@@ -26,14 +26,13 @@ class ChatGPT:
         prompt,
         user_name: str,
         files: list | None = None,
-        max_tokens: int = 400,
     ):
         self.prompt = prompt
         self.files = files[:5] if files else []
 
         self.messages = [
             {
-                "role": "system",
+                "role": "developer",
                 "content": self.system_prompt.format(
                     user_name=user_name,
                 ),
@@ -63,7 +62,7 @@ class ChatGPT:
         ]
 
         self.completion = await self.client.chat.completions.create(
-            model=self.model, messages=self.messages, max_tokens=max_tokens
+            model=self.model, messages=self.messages
         )
 
         return str(self.completion.choices[0].message.content)

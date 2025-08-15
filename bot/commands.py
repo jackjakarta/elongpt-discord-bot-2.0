@@ -266,7 +266,6 @@ async def tts_command(
 async def joke_command(interaction: discord.Interaction, category: str):
     categories_url = "https://api.chucknorris.io/jokes/categories"
 
-    # Fetch categories asynchronously
     async with httpx.AsyncClient() as client:
         categories_response = await client.get(categories_url)
     categories_response.raise_for_status()
@@ -317,9 +316,7 @@ async def recipe_command(interaction: discord.Interaction, ingredients: str):
     try:
         ai = ChatGPT()
         prompt = f"Write a recipe based on these ingredients:\n{ingredients}\n"
-        recipe = await ai.ask(
-            prompt=prompt, user_name=str(interaction.user), max_tokens=500
-        )
+        recipe = await ai.ask(prompt=prompt, user_name=str(interaction.user))
 
         await interaction.followup.send(
             f"***Recipe for {interaction.user.mention}:***\n\n{recipe}"
@@ -406,7 +403,7 @@ async def get_barca_matches_command(interaction: discord.Interaction):
         matches_response.raise_for_status()
         matches_list = matches_response.json()
 
-        ai = ChatGPT()
+        ai = ChatGPT(model="gpt-5-nano")
         prompt = f"Present this information to the user:\n{matches_list}\n"
         response = await ai.ask(prompt, user_name=user_name)
 
