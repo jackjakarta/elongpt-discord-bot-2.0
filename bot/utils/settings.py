@@ -15,3 +15,12 @@ BACKEND_API_KEY: Final[str] = env("BACKEND_API_KEY")
 BACKEND_API_URL: Final[str] = env("BACKEND_API_URL")
 UTILS_API_KEY: Final[str] = env("UTILS_API_KEY")
 UTILS_API_URL: Final[str] = env("UTILS_API_URL")
+SUPPORTED_OLLAMA_MODELS = [
+    "llama3.2:1b",
+    "deepseek-r1:14b",
+    "gemma3:12b",
+    "deepseek-r1:1.5b",
+    "llama3.2:3b",
+    "nemotron-mini:latest",
+    "orca-mini:latest",
+]

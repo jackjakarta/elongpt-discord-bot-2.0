@@ -1,5 +1,7 @@
 import httpx
 
+from bot.utils.settings import OLLAMA_SERVER
+
 from .utils import get_endpoint_url, get_request_headers
 
 
@@ -64,3 +66,20 @@ async def db_get_user_images(discord_user: str):
         response.raise_for_status()
 
         return response.json()
+
+
+async def check_ollama_server_health():
+    async with httpx.AsyncClient() as client:
+        endpoint_url = f"{OLLAMA_SERVER}/api/tags"
+
+        try:
+            response = await client.get(url=endpoint_url)
+
+            if response.status_code != 200:
+                return False
+
+            return True
+        except httpx.HTTPError:
+            return False
+        except Exception:
+            return False
