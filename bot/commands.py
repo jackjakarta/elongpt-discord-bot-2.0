@@ -9,6 +9,7 @@ from .ai.chat import ChatGPT, Ollama
 from .ai.image import ImageDallE
 from .ai.moderation import check_moderate
 from .api.crud import (
+    check_ollama_server_health,
     db_create_completion,
     db_create_recipe,
     db_get_user_images,
@@ -23,6 +24,7 @@ from .utils.settings import (
     KLIKR_API_KEY,
     KLIKR_API_URL,
     OLLAMA_MODEL,
+    SUPPORTED_OLLAMA_MODELS,
     UTILS_API_KEY,
     UTILS_API_URL,
 )
@@ -108,6 +110,19 @@ async def ollama(
     interaction: discord.Interaction, question: str, model: str = OLLAMA_MODEL
 ):
     await interaction.response.defer()
+
+    is_ollama_on = await check_ollama_server_health()
+
+    if not is_ollama_on:
+        return await interaction.followup.send(
+            "Ollama server is not available at the moment. Please try again later."
+        )
+
+    if model not in SUPPORTED_OLLAMA_MODELS:
+        return await interaction.followup.send(
+            f"The model `{model}` is not supported. "
+            f"Please choose from the following models: {', '.join(f'`{m}`' for m in SUPPORTED_OLLAMA_MODELS)}"
+        )
 
     try:
         is_flagged = await check_moderate(question)
