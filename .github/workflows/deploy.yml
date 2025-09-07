@@ -107,19 +107,17 @@ jobs:
           REMOTE_USER: "op://elon-gpt/github-secrets/REMOTE_USER"
           SSH_PRIVATE_KEY: "op://elon-gpt/github-secrets/SSH_PRIVATE_KEY"
 
-          OPENAI_API_KEY: "op://elon-gpt/.env.production/OPENAI_API_KEY"
-          OPENAI_MODEL: "op://elon-gpt/.env.production/OPENAI_MODEL"
           DISCORD_TOKEN: "op://elon-gpt/.env.production/DISCORD_TOKEN"
-          CMC_PRO_API_KEY: "op://elon-gpt/.env.production/CMC_PRO_API_KEY"
-          BACKEND_API_URL: "op://elon-gpt/.env.production/BACKEND_API_URL"
-          BACKEND_API_KEY: "op://elon-gpt/.env.production/BACKEND_API_KEY"
-          OLLAMA_SERVER: "op://elon-gpt/.env.production/OLLAMA_SERVER"
-          OLLAMA_MODEL: "op://elon-gpt/.env.production/OLLAMA_MODEL"
-          KLIKR_API_KEY: "op://elon-gpt/.env.production/KLIKR_API_KEY"
-          KLIKR_API_URL: "op://elon-gpt/.env.production/KLIKR_API_URL"
-          ADMIN_USER_ID: "op://elon-gpt/.env.production/ADMIN_USER_ID"
-          UTILS_API_URL: "op://elon-gpt/.env.production/UTILS_API_URL"
-          UTILS_API_KEY: "op://elon-gpt/.env.production/UTILS_API_KEY"
+          OPENAI_API_KEY: "op://elon-gpt/.env.shared/OPENAI_API_KEY"
+          OPENAI_MODEL: "op://elon-gpt/.env.shared/OPENAI_MODEL"
+          CMC_PRO_API_KEY: "op://elon-gpt/.env.shared/CMC_PRO_API_KEY"
+          BACKEND_API_URL: "op://elon-gpt/.env.shared/BACKEND_API_URL"
+          BACKEND_API_KEY: "op://elon-gpt/.env.shared/BACKEND_API_KEY"
+          OLLAMA_SERVER: "op://elon-gpt/.env.shared/OLLAMA_SERVER"
+          OLLAMA_MODEL: "op://elon-gpt/.env.shared/OLLAMA_MODEL"
+          ADMIN_USER_ID: "op://elon-gpt/.env.shared/ADMIN_USER_ID"
+          UTILS_API_URL: "op://elon-gpt/.env.shared/UTILS_API_URL"
+          UTILS_API_KEY: "op://elon-gpt/.env.shared/UTILS_API_KEY"
 
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v0.1.6
@@ -139,8 +137,6 @@ jobs:
               -e BACKEND_API_KEY="${{ env.BACKEND_API_KEY }}" \
               -e OLLAMA_SERVER="${{ env.OLLAMA_SERVER }}" \
               -e OLLAMA_MODEL="${{ env.OLLAMA_MODEL }}" \
-              -e KLIKR_API_KEY="${{ env.KLIKR_API_KEY }}" \
-              -e KLIKR_API_URL="${{ env.KLIKR_API_URL }}" \
               -e ADMIN_USER_ID="${{ env.ADMIN_USER_ID }}" \
               -e UTILS_API_URL="${{ env.UTILS_API_URL }}" \
               -e UTILS_API_KEY="${{ env.UTILS_API_KEY }}" \
