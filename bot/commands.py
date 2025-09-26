@@ -77,12 +77,13 @@ async def ask_command(
                 image_base64 = image_to_base64(file_data)
                 base64_images.append(image_base64)
 
-        ai = ChatGPT()
+        ai = ChatGPT(model="gpt-4o-search-preview")
         prompt = question
 
         response = await ai.ask(
             prompt,
             user_name=user_name,
+            internet_search=True,
             files=base64_images if len(base64_images) > 0 else None,
         )
 
