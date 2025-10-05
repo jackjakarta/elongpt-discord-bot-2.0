@@ -126,6 +126,7 @@ jobs:
           username: ${{ env.REMOTE_USER }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           script: |
+            echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_USERNAME }}" --password-stdin
             docker pull ${{ env.DOCKER_USERNAME }}/elongpt-v2:${{ env.TAG_VERSION }}
             docker rm -f elongpt-bot || true
             docker run -d -t \
