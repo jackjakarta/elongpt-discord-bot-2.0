@@ -81,8 +81,9 @@ jobs:
 
       - name: Build and push docker image
         run: |
-          docker build --no-cache -t ${{ env.DOCKER_USERNAME }}/elongpt-v2:${{ env.TAG_VERSION }} .
-          docker push ${{ env.DOCKER_USERNAME }}/elongpt-v2:${{ env.TAG_VERSION }}
+          docker build --no-cache -t ${{ env.DOCKER_USERNAME }}/elongpt-v2:${{ env.TAG_VERSION }} -t ${{ env.DOCKER_USERNAME }}/elongpt-v2:latest . && \
+          docker push ${{ env.DOCKER_USERNAME }}/elongpt-v2:${{ env.TAG_VERSION }} && \
+          docker push ${{ env.DOCKER_USERNAME }}/elongpt-v2:latest
 
   deploy:
     runs-on: ubuntu-latest
