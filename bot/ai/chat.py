@@ -20,18 +20,15 @@ class ChatGPT:
         self.system_prompt = system_prompt
         self.messages = None
         self.user_name = None
-        self.internet_search = False
 
     async def ask(
         self,
         prompt,
         user_name: str,
-        internet_search: bool = False,
         files: list | None = None,
     ):
         self.prompt = prompt
         self.files = files[:5] if files else []
-        self.internet_search = internet_search
 
         self.messages = [
             {
