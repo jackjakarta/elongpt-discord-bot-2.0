@@ -157,12 +157,12 @@ async def imagine(
     await interaction.response.defer()
 
     try:
-        is_flagged = await check_moderate(description)
+        # is_flagged = await check_moderate(description)
 
-        if is_flagged:
-            return await interaction.followup.send(
-                "The prompt contains inappropriate content. Please try again with a different prompt."
-            )
+        # if is_flagged:
+        #     return await interaction.followup.send(
+        #         "The prompt contains inappropriate content. Please try again with a different prompt."
+        #     )
 
         ai = ImageDallE()
         image_url = await ai.generate_image(description)
