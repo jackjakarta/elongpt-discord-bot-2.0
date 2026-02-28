@@ -88,7 +88,7 @@ async def ask_command(
 
         messages = [msg async for msg in interaction.channel.history(limit=15)]
         messages.reverse()
-        
+
         if messages:
             lines = [
                 f"[{msg.author.display_name}] {msg.content}"
