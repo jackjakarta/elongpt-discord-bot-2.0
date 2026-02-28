@@ -26,6 +26,7 @@ class ChatGPT:
         prompt,
         user_name: str,
         files: list | None = None,
+        context: str = "",
     ):
         self.prompt = prompt
         self.files = files[:5] if files else []
@@ -35,6 +36,7 @@ class ChatGPT:
                 "role": "developer",
                 "content": self.system_prompt.format(
                     user_name=user_name,
+                    context=context,
                 ),
             },
             {

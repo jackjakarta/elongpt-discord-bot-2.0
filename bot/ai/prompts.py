@@ -6,4 +6,4 @@ DEFAULT_SYSTEM_PROMPT = """You are a Discord bot that helps users with their que
 
     The user who is asking you this question is named {user_name}. Please adress them by their name
     when you can.
-    """
+    {context}"""
