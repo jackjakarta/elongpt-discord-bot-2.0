@@ -69,6 +69,35 @@ async def ask_command(
     await interaction.response.defer()
     user_name = str(interaction.user)
 
+    context = ""
+    if interaction.guild is not None:
+        online_statuses = {
+            discord.Status.online,
+            discord.Status.idle,
+            discord.Status.dnd,
+        }
+
+        online_users = [
+            member.display_name
+            for member in interaction.guild.members
+            if not member.bot and member.status in online_statuses
+        ]
+
+        if online_users:
+            context += f"Online users: {', '.join(online_users)}\n\n"
+
+        messages = [msg async for msg in interaction.channel.history(limit=15)]
+        messages.reverse()
+
+        if messages:
+            lines = [
+                f"[{msg.author.display_name}] {msg.content}"
+                for msg in messages
+                if msg.content
+            ]
+            if lines:
+                context += "Recent messages in this channel:\n" + "\n".join(lines)
+
     try:
         base64_images = []
         for file in files:
@@ -84,6 +113,7 @@ async def ask_command(
             prompt,
             user_name=user_name,
             files=base64_images if len(base64_images) > 0 else None,
+            context=context,
         )
 
         await interaction.followup.send(response)
@@ -95,7 +125,7 @@ async def ask_command(
         print(f"API Error: {e}")
 
     except Exception as e:
-        embed = create_embed(title="Unknown Error:", description=e)
+        embed = create_embed(title="Unknown Error:", description=e.__str__)
         await interaction.followup.send(embed=embed)
         print(f"Error: {e}")
 
