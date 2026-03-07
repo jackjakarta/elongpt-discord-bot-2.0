@@ -117,7 +117,11 @@ async def ask_command(
         )
 
         await interaction.followup.send(response)
-        await db_create_completion(user_name, prompt, response)
+
+        try:
+            await db_create_completion(user_name, prompt, response)
+        except Exception as e:
+            print(f"Failed to log completion: {e}")
 
     except requests.exceptions.HTTPError as e:
         embed = create_embed(title="API Error:", description=e)
@@ -125,7 +129,7 @@ async def ask_command(
         print(f"API Error: {e}")
 
     except Exception as e:
-        embed = create_embed(title="Unknown Error:", description=e.__str__)
+        embed = create_embed(title="Unknown Error:", description=str(e))
         await interaction.followup.send(embed=embed)
         print(f"Error: {e}")
 
