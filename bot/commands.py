@@ -1,6 +1,7 @@
+import io
+
 import discord
 import httpx
-import requests
 from discord.ext import commands
 from discord.ui import Button, View
 from httpx import ConnectError
@@ -13,7 +14,6 @@ from .api.crud import (
     db_create_completion,
     db_create_recipe,
     db_get_user_images,
-    s3_save_image,
 )
 from .utils import create_embed, image_to_base64
 from .utils.settings import (
@@ -123,7 +123,7 @@ async def ask_command(
         except Exception as e:
             print(f"Failed to log completion: {e}")
 
-    except requests.exceptions.HTTPError as e:
+    except httpx.HTTPStatusError as e:
         embed = create_embed(title="API Error:", description=e)
         await interaction.followup.send(embed=embed)
         print(f"API Error: {e}")
@@ -191,20 +191,11 @@ async def imagine(
     await interaction.response.defer()
 
     try:
-        # is_flagged = await check_moderate(description)
-
-        # if is_flagged:
-        #     return await interaction.followup.send(
-        #         "The prompt contains inappropriate content. Please try again with a different prompt."
-        #     )
-
         ai = ImageDallE()
-        image_url = await ai.generate_image(description)
+        image_bytes = await ai.generate_image(description)
 
-        await interaction.followup.send(image_url)
-        await s3_save_image(
-            image_url=image_url, discord_user=str(interaction.user), prompt=description
-        )
+        file = discord.File(io.BytesIO(image_bytes), filename="image.png")
+        await interaction.followup.send(file=file)
 
     except Exception as e:
         embed = create_embed(title="Unknown Error:", description=e)
@@ -228,7 +219,9 @@ async def price(interaction: discord.Interaction, symbol: str):
             "convert": "USD",
             "CMC_PRO_API_KEY": CMC_API_KEY,
         }
-        response = requests.get(api_url, params=params)
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(api_url, params=params)
 
         if response.status_code != 200:
             embed = create_embed(
@@ -371,7 +364,7 @@ async def recipe_command(interaction: discord.Interaction, ingredients: str):
 
         await db_create_recipe(str(interaction.user), ingredients, recipe)
 
-    except requests.exceptions.HTTPError as e:
+    except httpx.HTTPStatusError as e:
         embed = create_embed(title="API Error:", description=e)
         await interaction.followup.send(embed=embed)
         print(f"API Error: {e}")
@@ -425,7 +418,7 @@ async def get_barca_matches_command(interaction: discord.Interaction):
         await interaction.followup.send(
             f"***Upcoming Matches for {interaction.user.mention}:***\n\n{response}"
         )
-    except requests.exceptions.HTTPError as e:
+    except httpx.HTTPStatusError as e:
         embed = create_embed(title="API Error:", description=e)
         await interaction.followup.send(embed=embed)
         print(f"API Error: {e}")

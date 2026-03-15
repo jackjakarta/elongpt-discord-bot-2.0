@@ -1,3 +1,5 @@
+import base64
+
 from openai import AsyncOpenAI
 
 from bot.utils.settings import OPENAI_API_KEY
@@ -6,22 +8,18 @@ from bot.utils.settings import OPENAI_API_KEY
 class ImageDallE:
     """Image Generation with the OpenAI DALL-E model."""
 
-    def __init__(self, model="dall-e-3"):
+    def __init__(self, model="gpt-image-1.5"):
         self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
         self.model = model
-        self.prompt = None
-        self.response = None
-        self.image_url = None
 
     async def generate_image(self, prompt):
-        self.prompt = prompt
-        self.response = await self.client.images.generate(
+        response = await self.client.images.generate(
             model=self.model,
-            prompt=self.prompt,
-            size="1792x1024",
-            quality="standard",
+            prompt=prompt,
             n=1,
+            size="1024x1024",
+            moderation="low",
         )
-        self.image_url = self.response.data[0].url
 
-        return self.image_url
+        image_bytes = base64.b64decode(response.data[0].b64_json)
+        return image_bytes
