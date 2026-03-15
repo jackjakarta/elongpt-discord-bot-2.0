@@ -9,6 +9,7 @@ from httpx import ConnectError
 from .ai.chat import ChatGPT, Ollama
 from .ai.image import ImageDallE
 from .ai.moderation import check_moderate
+from .ai.tools import TOOL_DEFINITIONS, execute_tool_call
 from .api.crud import (
     check_ollama_server_health,
     db_create_completion,
@@ -109,13 +110,40 @@ async def ask_command(
         ai = ChatGPT()
         prompt = question
 
-        response = await ai.ask(
+        message = await ai.ask_with_tools(
             prompt,
             user_name=user_name,
             files=base64_images if len(base64_images) > 0 else None,
             context=context,
+            tools=TOOL_DEFINITIONS,
         )
 
+        tool_messages = []
+        for _ in range(3):
+            if not message.tool_calls:
+                break
+            tool_messages.append(message.to_dict())
+            for tc in message.tool_calls:
+                result = await execute_tool_call(
+                    tc.function.name, tc.function.arguments, interaction.guild
+                )
+                tool_messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "content": result,
+                    }
+                )
+            message = await ai.ask_with_tools(
+                prompt,
+                user_name=user_name,
+                files=base64_images if len(base64_images) > 0 else None,
+                context=context,
+                tools=TOOL_DEFINITIONS,
+                tool_messages=tool_messages,
+            )
+
+        response = str(message.content)
         await interaction.followup.send(response)
 
         try:

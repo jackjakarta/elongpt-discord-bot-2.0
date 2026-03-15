@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timezone
 
 from ollama import Client
 from openai import AsyncOpenAI
@@ -31,12 +32,15 @@ class ChatGPT:
         self.prompt = prompt
         self.files = files[:5] if files else []
 
+        today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
         self.messages = [
             {
                 "role": "developer",
                 "content": self.system_prompt.format(
                     user_name=user_name,
                     context=context,
+                    today_date=today_date,
                 ),
             },
             {
@@ -69,6 +73,63 @@ class ChatGPT:
         )
 
         return str(self.completion.choices[0].message.content)
+
+    async def ask_with_tools(
+        self,
+        prompt,
+        user_name: str,
+        files: list | None = None,
+        context: str = "",
+        tools: list | None = None,
+        tool_messages: list | None = None,
+    ):
+        self.prompt = prompt
+        self.files = files[:5] if files else []
+        today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+        self.messages = [
+            {
+                "role": "developer",
+                "content": self.system_prompt.format(
+                    user_name=user_name,
+                    context=context,
+                    today_date=today_date,
+                ),
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": self.prompt,
+                    },
+                    *(
+                        [
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{image}",
+                                },
+                            }
+                            for image in self.files
+                        ]
+                        if self.files
+                        else []
+                    ),
+                ],
+            },
+        ]
+
+        if tool_messages:
+            self.messages.extend(tool_messages)
+
+        kwargs = {"model": self.model, "messages": self.messages}
+        if tools:
+            kwargs["tools"] = tools
+
+        self.completion = await self.client.chat.completions.create(**kwargs)
+
+        return self.completion.choices[0].message
 
     async def get_models(self):
         models_list = await self.client.models.list().data

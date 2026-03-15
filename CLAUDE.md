@@ -9,6 +9,7 @@ ElonGPT is a Python Discord bot (discord.py 2.4) that integrates with OpenAI (Ch
 ## Commands
 
 ### Run
+
 ```bash
 python main.py              # Production
 python dev.py               # Dev mode with hot-reload (watchdog)
@@ -16,6 +17,7 @@ scripts/start-dev.sh        # Dev mode with 1Password secrets injection
 ```
 
 ### Format & Lint
+
 ```bash
 scripts/format-code.sh      # Run black + isort (auto-fix)
 black --check .             # Check formatting
@@ -26,6 +28,7 @@ flake8 .                    # Lint
 CI runs all three checks on PRs to main. No test suite exists.
 
 ### Docker
+
 ```bash
 docker build -t elongpt:tag .
 ```
@@ -37,6 +40,7 @@ docker build -t elongpt:tag .
 **All slash commands live in a single file:** `bot/commands.py`. This file creates the `commands.Bot` instance and defines all command handlers using `bot.tree.command()`. No Cogs or extension loading is used.
 
 **Module layout:**
+
 - `bot/ai/` — AI provider wrappers: `ChatGPT` (AsyncOpenAI), `Ollama` (sync client), `ImageDallE` (DALL-E 3), plus `moderation.py` and `prompts.py`
 - `bot/api/` — External backend HTTP calls via async `httpx` (`crud.py`) and URL/header helpers (`utils.py`)
 - `bot/utils/` — `settings.py` loads all env vars via `python-decouple`; `__init__.py` has embed creation and base64 helpers
@@ -65,3 +69,7 @@ Secrets are managed via 1Password (see `.env.op` for the full list). Key vars: `
 ## Deployment
 
 Tags matching `1.*.*` trigger GitHub Actions: lint checks → Docker build → push to GHCR (`ghcr.io`) → SSH deploy to remote server.
+
+## Development
+
+You can always use the context7 mcp tools to search for library documentation when working with external libraries or in general.

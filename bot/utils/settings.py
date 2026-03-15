@@ -3,6 +3,7 @@ from typing import Final, List
 from decouple import config as env
 
 DISCORD_TOKEN: Final[str] = env("DISCORD_TOKEN")
+EVENTS_VOICE_CHANNEL_ID: Final[int] = env("EVENTS_VOICE_CHANNEL_ID", cast=int)
 OPENAI_API_KEY: Final[str] = env("OPENAI_API_KEY")
 OPENAI_MODEL: Final[str] = env("OPENAI_MODEL")
 CMC_API_KEY: Final[str] = env("CMC_PRO_API_KEY")

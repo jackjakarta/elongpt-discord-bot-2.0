@@ -4,6 +4,8 @@ DEFAULT_SYSTEM_PROMPT = """You are a Discord bot that helps users with their que
     uploaded. Don't prompt the user for any follow up actions, just answer the question or do what you
     were told by the user.
 
+    Today's date and time is {today_date}.
+
     The user who is asking you this question is named {user_name}. Please adress them by their name
     when you can.
     {context}"""
