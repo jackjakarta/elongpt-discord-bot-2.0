@@ -12,3 +12,7 @@ BACKEND_API_KEY: Final[str] = env("BACKEND_API_KEY")
 BACKEND_API_URL: Final[str] = env("BACKEND_API_URL")
 UTILS_API_KEY: Final[str] = env("UTILS_API_KEY")
 UTILS_API_URL: Final[str] = env("UTILS_API_URL")
+OPENAI_REALTIME_MODEL: Final[str] = env(
+    "OPENAI_REALTIME_MODEL", default="gpt-4o-realtime-preview"
+)
+OPENAI_REALTIME_VOICE: Final[str] = env("OPENAI_REALTIME_VOICE", default="alloy")

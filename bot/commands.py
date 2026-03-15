@@ -2,17 +2,20 @@ import io
 
 import discord
 import httpx
-from discord.ext import commands
+from discord.ext import commands, voice_recv
 from discord.ui import Button, View
 
 from .ai.chat import ChatGPT, get_chat_context
 from .ai.image import OpenAiImageGeneration
 from .ai.tools import TOOL_DEFINITIONS, execute_tool_call
+from .ai.voice import VoiceSession
 from .api.crud import db_create_completion
 from .utils import create_embed, image_to_base64
 from .utils.settings import ADMIN_USER_ID, CMC_API_KEY
 
 bot = commands.Bot(command_prefix=".", intents=discord.Intents.all())
+
+active_voice_sessions: dict[int, VoiceSession] = {}
 
 
 @bot.tree.command(name="synccommands", description="Sync commands with discord")
@@ -226,3 +229,63 @@ async def joke_command(interaction: discord.Interaction):
         embed = create_embed(title="API Call Error:", description=str(e))
         await interaction.response.send_message(embed=embed)
         print(f"API Call Error: {e}")
+
+
+@bot.tree.command(
+    name="voice", description="Join your voice channel for a conversation"
+)
+async def voice_command(interaction: discord.Interaction):
+    if not interaction.user.voice or not interaction.user.voice.channel:
+        return await interaction.response.send_message(
+            "You need to be in a voice channel first.", ephemeral=True
+        )
+
+    guild_id = interaction.guild_id
+    if guild_id in active_voice_sessions:
+        return await interaction.response.send_message(
+            "Already in a voice session. Use /leave first.", ephemeral=True
+        )
+
+    await interaction.response.defer()
+
+    try:
+        voice_channel = interaction.user.voice.channel
+        vc = await voice_channel.connect(cls=voice_recv.VoiceRecvClient)
+
+        session = VoiceSession(vc, interaction.user.id, str(interaction.user))
+        await session.start()
+        active_voice_sessions[guild_id] = session
+
+        await interaction.followup.send(
+            f"Joined **{voice_channel.name}**! Listening to "
+            f"**{interaction.user.display_name}** — speak and I'll respond."
+        )
+
+    except Exception as e:
+        if guild_id in active_voice_sessions:
+            del active_voice_sessions[guild_id]
+        embed = create_embed(title="Voice Error:", description=str(e))
+        await interaction.followup.send(embed=embed)
+        print(f"Voice Error: {e}")
+
+
+@bot.tree.command(name="leave", description="Leave the voice channel")
+async def leave_command(interaction: discord.Interaction):
+    guild_id = interaction.guild_id
+    session = active_voice_sessions.get(guild_id)
+
+    if not session:
+        return await interaction.response.send_message(
+            "Not in a voice session.", ephemeral=True
+        )
+
+    await interaction.response.defer()
+
+    try:
+        await session.stop()
+    except Exception as e:
+        print(f"Error stopping voice session: {e}")
+    finally:
+        active_voice_sessions.pop(guild_id, None)
+
+    await interaction.followup.send("Left the voice channel.")
