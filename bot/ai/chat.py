@@ -95,14 +95,13 @@ class Ollama:
 
         self.completion = self.client.chat(model=self.model, messages=self.messages)
         response = self.completion.get("message").get("content")
-        cleaned_response = remove_think_tags(response)
+        cleaned_response = self._remove_think_tags(response)
 
         return cleaned_response
 
+    def _remove_think_tags(self, response_content):
+        cleaned_content = re.sub(
+            r"<think>.*?</think>\s*", "", response_content, flags=re.DOTALL
+        )
 
-def remove_think_tags(response_content):
-    cleaned_content = re.sub(
-        r"<think>.*?</think>\s*", "", response_content, flags=re.DOTALL
-    )
-
-    return cleaned_content.strip()
+        return cleaned_content.strip()
