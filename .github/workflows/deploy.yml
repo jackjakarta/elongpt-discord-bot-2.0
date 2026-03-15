@@ -116,8 +116,6 @@ jobs:
           CMC_PRO_API_KEY: "op://elon-gpt/.env.shared/CMC_PRO_API_KEY"
           BACKEND_API_URL: "op://elon-gpt/.env.shared/BACKEND_API_URL"
           BACKEND_API_KEY: "op://elon-gpt/.env.shared/BACKEND_API_KEY"
-          OLLAMA_SERVER: "op://elon-gpt/.env.shared/OLLAMA_SERVER"
-          OLLAMA_MODEL: "op://elon-gpt/.env.shared/OLLAMA_MODEL"
           ADMIN_USER_ID: "op://elon-gpt/.env.shared/ADMIN_USER_ID"
           UTILS_API_URL: "op://elon-gpt/.env.shared/UTILS_API_URL"
           UTILS_API_KEY: "op://elon-gpt/.env.shared/UTILS_API_KEY"
@@ -140,8 +138,6 @@ jobs:
               -e CMC_PRO_API_KEY="${{ env.CMC_PRO_API_KEY }}" \
               -e BACKEND_API_URL="${{ env.BACKEND_API_URL }}" \
               -e BACKEND_API_KEY="${{ env.BACKEND_API_KEY }}" \
-              -e OLLAMA_SERVER="${{ env.OLLAMA_SERVER }}" \
-              -e OLLAMA_MODEL="${{ env.OLLAMA_MODEL }}" \
               -e ADMIN_USER_ID="${{ env.ADMIN_USER_ID }}" \
               -e UTILS_API_URL="${{ env.UTILS_API_URL }}" \
               -e UTILS_API_KEY="${{ env.UTILS_API_KEY }}" \

@@ -1,10 +1,8 @@
-import re
 from datetime import datetime, timezone
 
-from ollama import Client
 from openai import AsyncOpenAI
 
-from bot.utils.settings import OLLAMA_MODEL, OLLAMA_SERVER, OPENAI_API_KEY, OPENAI_MODEL
+from bot.utils.settings import OPENAI_API_KEY, OPENAI_MODEL
 
 from .prompts import DEFAULT_SYSTEM_PROMPT
 
@@ -136,33 +134,3 @@ class ChatGPT:
         models = [x.id for x in models_list]
 
         return sorted(models)
-
-
-class Ollama:
-    """Ollama Class"""
-
-    def __init__(self, model=OLLAMA_MODEL):
-        self.client = Client(host=OLLAMA_SERVER)
-        self.model = model
-        self.prompt = None
-        self.completion = None
-        self.messages = []
-
-    def ask(self, prompt):
-        self.prompt = prompt
-
-        if self.prompt:
-            self.messages.append({"role": "user", "content": self.prompt})
-
-        self.completion = self.client.chat(model=self.model, messages=self.messages)
-        response = self.completion.get("message").get("content")
-        cleaned_response = self._remove_think_tags(response)
-
-        return cleaned_response
-
-    def _remove_think_tags(self, response_content):
-        cleaned_content = re.sub(
-            r"<think>.*?</think>\s*", "", response_content, flags=re.DOTALL
-        )
-
-        return cleaned_content.strip()
