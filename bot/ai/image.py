@@ -6,7 +6,7 @@ from bot.utils.settings import OPENAI_API_KEY
 
 
 class ImageDallE:
-    """Image Generation with the OpenAI DALL-E model."""
+    """Image Generation with the OpenAI Image 1.5 model."""
 
     def __init__(self, model="gpt-image-1.5"):
         self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
