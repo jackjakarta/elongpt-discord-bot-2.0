@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from discord import Interaction, Status
 from openai import AsyncOpenAI
 
 from bot.utils.settings import OPENAI_API_KEY, OPENAI_MODEL
@@ -134,3 +135,39 @@ class ChatGPT:
         models = [x.id for x in models_list]
 
         return sorted(models)
+
+
+async def get_chat_context(
+    interaction: Interaction,
+):
+    context = ""
+
+    if interaction.guild is not None:
+        online_statuses = {
+            Status.online,
+            Status.idle,
+            Status.dnd,
+        }
+
+        online_users = [
+            member.display_name
+            for member in interaction.guild.members
+            if not member.bot and member.status in online_statuses
+        ]
+
+        if online_users:
+            context += f"Online users: {', '.join(online_users)}\n\n"
+
+        messages = [msg async for msg in interaction.channel.history(limit=15)]
+        messages.reverse()
+
+        if messages:
+            lines = [
+                f"[{msg.author.display_name}] {msg.content}"
+                for msg in messages
+                if msg.content
+            ]
+            if lines:
+                context += "Recent messages in this channel:\n" + "\n".join(lines)
+
+    return context
