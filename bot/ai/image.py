@@ -5,7 +5,7 @@ from openai import AsyncOpenAI
 from bot.utils.settings import OPENAI_API_KEY
 
 
-class ImageDallE:
+class OpenAiImageGeneration:
     """Image Generation with the OpenAI Image 1.5 model."""
 
     def __init__(self, model="gpt-image-1.5"):

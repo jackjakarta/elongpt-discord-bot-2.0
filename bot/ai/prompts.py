@@ -10,6 +10,6 @@ DEFAULT_SYSTEM_PROMPT = """You are a Discord bot that helps users with their que
 
     You can schedule events using the tools you have. Some parameters are optional.
 
-    This is additional context that contains previous messages in this chat:
+    This is additional context that contains information about this chat:
 
     {context}"""

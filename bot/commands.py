@@ -5,8 +5,8 @@ import httpx
 from discord.ext import commands
 from discord.ui import Button, View
 
-from .ai.chat import ChatGPT
-from .ai.image import ImageDallE
+from .ai.chat import ChatGPT, get_chat_context
+from .ai.image import OpenAiImageGeneration
 from .ai.tools import TOOL_DEFINITIONS, execute_tool_call
 from .api.crud import db_create_completion
 from .utils import create_embed, image_to_base64
@@ -52,38 +52,11 @@ async def ask_command(
     image4: discord.Attachment = None,
     image5: discord.Attachment = None,
 ):
-    files = [image1, image2, image3, image4, image5]
     await interaction.response.defer()
+
+    files = [image1, image2, image3, image4, image5]
     user_name = str(interaction.user)
-
-    context = ""
-    if interaction.guild is not None:
-        online_statuses = {
-            discord.Status.online,
-            discord.Status.idle,
-            discord.Status.dnd,
-        }
-
-        online_users = [
-            member.display_name
-            for member in interaction.guild.members
-            if not member.bot and member.status in online_statuses
-        ]
-
-        if online_users:
-            context += f"Online users: {', '.join(online_users)}\n\n"
-
-        messages = [msg async for msg in interaction.channel.history(limit=15)]
-        messages.reverse()
-
-        if messages:
-            lines = [
-                f"[{msg.author.display_name}] {msg.content}"
-                for msg in messages
-                if msg.content
-            ]
-            if lines:
-                context += "Recent messages in this channel:\n" + "\n".join(lines)
+    context = await get_chat_context(interaction)
 
     try:
         base64_images = []
@@ -108,11 +81,14 @@ async def ask_command(
         for _ in range(3):
             if not message.tool_calls:
                 break
+
             tool_messages.append(message.to_dict())
+
             for tc in message.tool_calls:
                 result = await execute_tool_call(
                     tc.function.name, tc.function.arguments, interaction.guild
                 )
+
                 tool_messages.append(
                     {
                         "role": "tool",
@@ -120,6 +96,7 @@ async def ask_command(
                         "content": result,
                     }
                 )
+
             message = await ai.ask_with_tools(
                 prompt,
                 user_name=user_name,
@@ -159,7 +136,7 @@ async def imagine(
     await interaction.response.defer()
 
     try:
-        ai = ImageDallE()
+        ai = OpenAiImageGeneration()
         image_bytes = await ai.generate_image(description)
 
         file = discord.File(io.BytesIO(image_bytes), filename="image.png")
@@ -219,23 +196,9 @@ async def price(interaction: discord.Interaction, symbol: str):
 
 
 @bot.tree.command(name="joke", description="Get a Chuck Norris joke")
-@discord.app_commands.describe(category="The joke category you want to get")
-async def joke_command(interaction: discord.Interaction, category: str):
-    categories_url = "https://api.chucknorris.io/jokes/categories"
-
-    async with httpx.AsyncClient() as client:
-        categories_response = await client.get(categories_url)
-    categories_response.raise_for_status()
-    categories_list = categories_response.json()
-    categories = ", ".join(categories_list)
-
-    if category not in categories_list:
-        return await interaction.response.send_message(
-            f"**Available categories:** {categories}"
-        )
-
+async def joke_command(interaction: discord.Interaction):
     try:
-        joke_url = f"https://api.chucknorris.io/jokes/random?category={category}"
+        joke_url = "https://api.chucknorris.io/jokes/random"
 
         async with httpx.AsyncClient() as client:
             joke_response = await client.get(joke_url)
