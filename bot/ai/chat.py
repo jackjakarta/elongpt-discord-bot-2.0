@@ -158,7 +158,7 @@ async def get_chat_context(
         if online_users:
             context += f"Online users: {', '.join(online_users)}\n\n"
 
-        messages = [msg async for msg in interaction.channel.history(limit=15)]
+        messages = [msg async for msg in interaction.channel.history(limit=10)]
         messages.reverse()
 
         if messages:
