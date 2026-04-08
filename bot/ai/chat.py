@@ -3,16 +3,14 @@ from datetime import datetime, timezone
 from discord import Interaction, Status
 from openai import AsyncOpenAI
 
-from bot.utils.settings import OPENAI_API_KEY, OPENAI_MODEL
+from bot.utils.settings import DGPT_API_KEY, DGPT_API_URL, OPENAI_MODEL
 
 from .prompts import DEFAULT_SYSTEM_PROMPT
 
 
 class ChatGPT:
-    """ChatGPT Class"""
-
     def __init__(self, system_prompt=DEFAULT_SYSTEM_PROMPT, model=OPENAI_MODEL):
-        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        self.client = AsyncOpenAI(api_key=DGPT_API_KEY, base_url=DGPT_API_URL)
         self.model = model
         self.prompt = None
         self.completion = None
@@ -167,6 +165,7 @@ async def get_chat_context(
                 for msg in messages
                 if msg.content
             ]
+
             if lines:
                 context += "Recent messages in this channel:\n" + "\n".join(lines)
 
