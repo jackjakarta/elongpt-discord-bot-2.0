@@ -3,7 +3,7 @@ name: Build and Deploy Bot
 on:
   push:
     tags:
-      - "1.*.*"
+      - "*.*.*"
 
   workflow_dispatch:
     inputs:
@@ -119,6 +119,8 @@ jobs:
           ADMIN_USER_ID: "op://elon-gpt/.env.shared/ADMIN_USER_ID"
           UTILS_API_URL: "op://elon-gpt/.env.shared/UTILS_API_URL"
           UTILS_API_KEY: "op://elon-gpt/.env.shared/UTILS_API_KEY"
+          DGPT_API_URL: "op://elon-gpt/.env.shared/DGPT_API_URL"
+          DGPT_API_KEY: "op://elon-gpt/.env.shared/DGPT_API_KEY"
 
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v0.1.6
@@ -141,6 +143,8 @@ jobs:
               -e ADMIN_USER_ID="${{ env.ADMIN_USER_ID }}" \
               -e UTILS_API_URL="${{ env.UTILS_API_URL }}" \
               -e UTILS_API_KEY="${{ env.UTILS_API_KEY }}" \
+              -e DGPT_API_URL="${{ env.DGPT_API_URL }}" \
+              -e DGPT_API_KEY="${{ env.DGPT_API_KEY }}" \
               --restart always \
               --name elongpt-bot \
               "ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}"
