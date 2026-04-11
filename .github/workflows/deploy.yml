@@ -122,6 +122,15 @@ jobs:
           REMOTE_USER: "op://elon-gpt/github-secrets/REMOTE_USER"
           SSH_PRIVATE_KEY: "op://elon-gpt/github-secrets/SSH_PRIVATE_KEY"
 
+      - name: Copy .env to remote server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ env.REMOTE_HOST }}
+          username: ${{ env.REMOTE_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          source: ".env"
+          target: "/tmp/elongpt-deploy"
+
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -133,7 +142,8 @@ jobs:
             docker pull ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}
             docker rm -f elongpt-bot || true
             docker run -d -t \
-              --env-file .env \
+              --env-file /tmp/elongpt-deploy/.env \
               --restart always \
               --name elongpt-bot \
               "ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}"
+            rm -rf /tmp/elongpt-deploy
