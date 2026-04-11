@@ -1,0 +1,27 @@
+name: Mirror main to GitLab
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load 1password secrets
+        uses: 1password/load-secrets-action@v1
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          GITLAB_TOKEN: "op://elon-gpt/github-secrets/GITLAB_TOKEN"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push main to GitLab
+        run: |
+          git remote add gitlab https://oauth2:${{ env.GITLAB_TOKEN }}@gitlab.com/alextermure/elongpt-discord-bot-2.0.git
+          git push gitlab HEAD:main --force
