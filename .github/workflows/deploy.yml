@@ -82,7 +82,9 @@ jobs:
 
       - name: Build and push docker image
         run: |
-          docker build --no-cache -t ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }} -t ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:latest . && \
+          docker build --no-cache \
+          -t ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }} \
+          -t ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:latest . && \
           docker push ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }} && \
           docker push ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:latest
 
@@ -97,7 +99,18 @@ jobs:
         run: |
           echo "TAG_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
 
-      - name: Load 1password secrets
+      - name: Install 1Password CLI
+        uses: 1password/install-cli-action@v1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Inject bot secrets into .env
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        run: ENVIRONMENT=production op inject -f -i .env.op -o .env
+
+      - name: Load deploy secrets
         uses: 1password/load-secrets-action@v1
         with:
           export-env: true
@@ -108,19 +121,6 @@ jobs:
           REMOTE_HOST: "op://elon-gpt/github-secrets/REMOTE_HOST"
           REMOTE_USER: "op://elon-gpt/github-secrets/REMOTE_USER"
           SSH_PRIVATE_KEY: "op://elon-gpt/github-secrets/SSH_PRIVATE_KEY"
-
-          DISCORD_TOKEN: "op://elon-gpt/.env.production/DISCORD_TOKEN"
-          EVENTS_VOICE_CHANNEL_ID: "op://elon-gpt/.env.production/EVENTS_VOICE_CHANNEL_ID"
-          OPENAI_API_KEY: "op://elon-gpt/.env.shared/OPENAI_API_KEY"
-          OPENAI_MODEL: "op://elon-gpt/.env.shared/OPENAI_MODEL"
-          CMC_PRO_API_KEY: "op://elon-gpt/.env.shared/CMC_PRO_API_KEY"
-          BACKEND_API_URL: "op://elon-gpt/.env.shared/BACKEND_API_URL"
-          BACKEND_API_KEY: "op://elon-gpt/.env.shared/BACKEND_API_KEY"
-          ADMIN_USER_ID: "op://elon-gpt/.env.shared/ADMIN_USER_ID"
-          UTILS_API_URL: "op://elon-gpt/.env.shared/UTILS_API_URL"
-          UTILS_API_KEY: "op://elon-gpt/.env.shared/UTILS_API_KEY"
-          DGPT_API_URL: "op://elon-gpt/.env.shared/DGPT_API_URL"
-          DGPT_API_KEY: "op://elon-gpt/.env.shared/DGPT_API_KEY"
 
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v0.1.6
@@ -133,18 +133,7 @@ jobs:
             docker pull ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}
             docker rm -f elongpt-bot || true
             docker run -d -t \
-              -e OPENAI_API_KEY="${{ env.OPENAI_API_KEY }}" \
-              -e OPENAI_MODEL="${{ env.OPENAI_MODEL }}" \
-              -e DISCORD_TOKEN="${{ env.DISCORD_TOKEN }}" \
-              -e EVENTS_VOICE_CHANNEL_ID="${{ env.EVENTS_VOICE_CHANNEL_ID }}" \
-              -e CMC_PRO_API_KEY="${{ env.CMC_PRO_API_KEY }}" \
-              -e BACKEND_API_URL="${{ env.BACKEND_API_URL }}" \
-              -e BACKEND_API_KEY="${{ env.BACKEND_API_KEY }}" \
-              -e ADMIN_USER_ID="${{ env.ADMIN_USER_ID }}" \
-              -e UTILS_API_URL="${{ env.UTILS_API_URL }}" \
-              -e UTILS_API_KEY="${{ env.UTILS_API_KEY }}" \
-              -e DGPT_API_URL="${{ env.DGPT_API_URL }}" \
-              -e DGPT_API_KEY="${{ env.DGPT_API_KEY }}" \
+              --env-file .env \
               --restart always \
               --name elongpt-bot \
               "ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}"
