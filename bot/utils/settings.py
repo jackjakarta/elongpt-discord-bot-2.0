@@ -14,5 +14,3 @@ UTILS_API_KEY: Final[str] = env("UTILS_API_KEY")
 UTILS_API_URL: Final[str] = env("UTILS_API_URL")
 DGPT_API_URL: Final[str] = env("DGPT_API_URL")
 DGPT_API_KEY: Final[str] = env("DGPT_API_KEY")
-
-print(OPENAI_MODEL)

@@ -1,6 +1,9 @@
-name: Checks
+name: Static Checks
 
 on:
+  push:
+    branches: [main]
+
   pull_request:
     branches: [main]
 
