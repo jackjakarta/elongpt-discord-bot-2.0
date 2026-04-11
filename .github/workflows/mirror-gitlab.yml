@@ -3,6 +3,8 @@ name: Mirror main to GitLab
 on:
   push:
     branches: [main]
+    tags:
+      - "**"
 
 jobs:
   mirror:
@@ -25,3 +27,4 @@ jobs:
         run: |
           git remote add gitlab https://oauth2:${{ env.GITLAB_TOKEN }}@gitlab.com/alextermure/elongpt-discord-bot-2.0.git
           git push gitlab HEAD:main --force
+          git push gitlab --tags --force
