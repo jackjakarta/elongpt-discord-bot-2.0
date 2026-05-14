@@ -3,13 +3,13 @@ from datetime import datetime, timezone
 from discord import Interaction, Status
 from openai import AsyncOpenAI
 
-from bot.utils.settings import DGPT_API_KEY, DGPT_API_URL, OPENAI_MODEL
+from bot.utils.settings import DGPT_API_KEY, DGPT_API_URL, DGPT_MODEL
 
-from .prompts import DEFAULT_SYSTEM_PROMPT
+from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
 
 
 class ChatGPT:
-    def __init__(self, system_prompt=DEFAULT_SYSTEM_PROMPT, model=OPENAI_MODEL):
+    def __init__(self, system_prompt=DEFAULT_SYSTEM_PROMPT, model=DGPT_MODEL):
         self.client = AsyncOpenAI(api_key=DGPT_API_KEY, base_url=DGPT_API_URL)
         self.model = model
         self.prompt = None
@@ -36,7 +36,6 @@ class ChatGPT:
                 "role": "developer",
                 "content": self.system_prompt.format(
                     user_name=user_name,
-                    context=context,
                     today_date=today_date,
                 ),
             },
@@ -45,7 +44,9 @@ class ChatGPT:
                 "content": [
                     {
                         "type": "text",
-                        "text": self.prompt,
+                        "text": DEFAULT_USER_PROMPT.format(
+                            context=context, user_message=self.prompt
+                        ),
                     },
                     *(
                         [
