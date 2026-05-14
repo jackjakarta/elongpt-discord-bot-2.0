@@ -10,7 +10,7 @@ env
 .mcp.json
 .isort.cfg
 .flake8
-.env.op
+.env\*
 .dockerignore
 
 README.md
