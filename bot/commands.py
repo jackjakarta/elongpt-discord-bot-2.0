@@ -97,7 +97,7 @@ async def ask_command(
                     }
                 )
 
-            message = await ai.ask_with_tools(
+            message = await ai.ask(
                 prompt,
                 user_name=user_name,
                 files=base64_images if len(base64_images) > 0 else None,
