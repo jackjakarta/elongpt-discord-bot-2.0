@@ -7,7 +7,7 @@ ADMIN_USER_ID: Final[str] = env("ADMIN_USER_ID")
 
 OPENAI_API_KEY: Final[str] = env("OPENAI_API_KEY")
 OPENAI_API_BASE_URL: Optional[str] = env("OPENAI_API_BASE_URL", None)
-OPENAI_MODEL: Optional[str] = env("OPENAI_MODEL", "gpt-5.4-mini")
+OPENAI_MODEL: Final[str] = env("OPENAI_MODEL", "gpt-5.4-mini")
 
 BACKEND_API_KEY: Optional[str] = env("BACKEND_API_KEY", None)
 BACKEND_API_URL: Optional[str] = env("BACKEND_API_URL", None)

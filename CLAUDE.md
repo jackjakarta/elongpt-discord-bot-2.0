@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ElonGPT is a Python Discord bot (discord.py 2.4) that integrates with OpenAI-compatible LLM providers, OpenAI image generation, CoinMarketCap, and an external backend REST API. Python 3.12.
+ElonGPT is a Python Discord bot (discord.py 2.4) that integrates with an OpenAI-compatible LLM provider (chat + image generation via the same key/base URL), CoinMarketCap, and an external backend REST API. Python 3.12.
 
 ## Commands
 
@@ -41,13 +41,13 @@ docker build -t elongpt:tag .
 
 **Module layout:**
 
-- `bot/ai/chat.py` — `ChatGPT` class wraps AsyncOpenAI client; connects to a configurable provider via `DGPT_API_URL`/`DGPT_API_KEY` (not the OpenAI API directly). Has both `ask()` and `ask_with_tools()` methods.
-- `bot/ai/image.py` — `OpenAiImageGeneration` class uses AsyncOpenAI with `gpt-image-1.5` model. This one uses `OPENAI_API_KEY` directly (not the DGPT provider).
-- `bot/ai/tools.py` — OpenAI function-calling tool definitions. Currently has `CreateScheduledEvent` for Discord server event creation. Tools use pydantic models validated via `openai.pydantic_function_tool()`.
-- `bot/ai/prompts.py` — System prompt template with `{user_name}`, `{context}`, `{today_date}` placeholders.
+- `bot/ai/chat.py` — `ChatGPT` class wraps `AsyncOpenAI`; instantiated with `OPENAI_API_KEY` and optional `OPENAI_API_BASE_URL` (lets the same code target OpenAI or any compatible provider). Single `ask()` method handles plain prompts, vision (base64 images), and tool-calling.
+- `bot/ai/image.py` — `OpenAiImageGeneration` wraps `AsyncOpenAI` with model `gpt-image-1.5`; reuses the same `OPENAI_API_KEY`/`OPENAI_API_BASE_URL` as chat.
+- `bot/ai/tools.py` — OpenAI function-calling tool definitions. Currently has `CreateScheduledEvent` for Discord server event creation. Tools use pydantic models validated via `openai.pydantic_function_tool()`. `TOOL_DEFINITIONS` is empty when `EVENTS_VOICE_CHANNEL_ID` is unset, so the model never sees a tool it can't fulfill.
+- `bot/ai/prompts.py` — Two-template structure: `DEFAULT_SYSTEM_PROMPT` (placeholders: `{user_name}`, `{today_date}`) and `DEFAULT_USER_PROMPT` which wraps chat context and the user message in `<context>` / `<user_message>` XML tags. The system prompt explicitly tells the model to treat `<context>` as data, not instructions — preserve this when editing prompts.
 - `bot/ai/moderation.py` — `check_moderate()` uses OpenAI's moderation API.
-- `bot/api/` — External backend HTTP calls via async `httpx` (`crud.py`) and URL/header helpers (`utils.py`)
-- `bot/utils/` — `settings.py` loads all env vars via `python-decouple`; `__init__.py` has embed creation and base64 helpers
+- `bot/api/` — External backend HTTP calls via async `httpx` (`crud.py`) and URL/header helpers (`utils.py`).
+- `bot/utils/` — `settings.py` loads all env vars via `python-decouple`; `__init__.py` has embed creation and base64 helpers.
 
 **No local database.** All persistence goes through `BACKEND_API_URL` (completions logging).
 
@@ -55,7 +55,7 @@ docker build -t elongpt:tag .
 
 - AI classes (`ChatGPT`, `OpenAiImageGeneration`) are instantiated fresh per command invocation, not shared
 - The `/ask` command runs a tool-calling loop (up to 3 iterations) — it sends the prompt with tools, executes any tool calls, feeds results back, and repeats until the model responds with text
-- `get_chat_context()` builds context from online guild members + last 10 channel messages, passed to the LLM as part of the system prompt
+- `get_chat_context()` builds context from online guild members + last 10 channel messages and is injected into the **user** prompt's `<context>` block (not the system prompt)
 - Long-running commands use `interaction.response.defer()` + `interaction.followup.send()` to avoid Discord's 3-second timeout
 - Backend API calls use Bearer token auth (`BACKEND_API_KEY`)
 - All env vars are centralized as typed `Final` constants in `bot/utils/settings.py`
@@ -64,16 +64,15 @@ docker build -t elongpt:tag .
 
 Secrets are managed via 1Password (see `.env.op` for the full list).
 
-Required: `DISCORD_TOKEN`, `DGPT_API_URL`, `DGPT_API_KEY`, `DGPT_MODEL`.
+Required: `DISCORD_TOKEN`, `ADMIN_USER_ID`, `OPENAI_API_KEY` (`settings.py` calls `env(...)` with no default — startup will crash if missing).
 
-Optional (feature gates — startup does not crash without them, but the dependent feature is disabled):
-- `OPENAI_API_KEY` — `/imagine`
-- `CMC_PRO_API_KEY` — `/price`
-- `ADMIN_USER_ID` — `/synccommands`
-- `EVENTS_VOICE_CHANNEL_ID` — scheduled-event tool exposed to `/ask`
-- `BACKEND_API_URL` / `BACKEND_API_KEY` — completion logging to external backend
+Optional (feature gates / overrides — `settings.py` provides defaults or `None`):
 
-Note: `ChatGPT` (chat completions) uses `DGPT_API_URL`/`DGPT_API_KEY` while `OpenAiImageGeneration` uses `OPENAI_API_KEY` directly.
+- `OPENAI_API_BASE_URL` — point chat + image at a non-OpenAI compatible provider; unset uses real OpenAI
+- `OPENAI_MODEL` — chat model, defaults to `gpt-5.4-mini`
+- `EVENTS_VOICE_CHANNEL_ID` — when unset, `TOOL_DEFINITIONS` is empty and `/ask` cannot schedule events
+- `CMC_PRO_API_KEY` — `/price` (short-circuits with a "not configured" embed when missing). Note: the Python constant is `CMC_API_KEY` but the env var is `CMC_PRO_API_KEY` — don't rename one without the other.
+- `BACKEND_API_URL` / `BACKEND_API_KEY` — completion logging to external backend; failures are caught and logged, not fatal
 
 ## Style
 

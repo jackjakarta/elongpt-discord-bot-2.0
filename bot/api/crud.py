@@ -11,7 +11,6 @@ async def db_create_completion(discord_user: str, prompt: str, completion: str):
         return
 
     async with httpx.AsyncClient() as client:
-
         data = {
             "discordUser": discord_user,
             "prompt": prompt,
