@@ -1,10 +1,16 @@
-name: Mirror main to GitLab
+name: Mirror to GitLab
 
 on:
   push:
-    branches: [main]
-    tags:
-      - "**"
+    branches: ["**"]
+    tags: ["**"]
+
+  delete:
+  workflow_dispatch:
+
+concurrency:
+  group: mirror-gitlab
+  cancel-in-progress: false
 
 jobs:
   mirror:
@@ -20,13 +26,8 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           GITLAB_TOKEN: "op://elon-gpt/github-secrets/GITLAB_TOKEN"
 
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Push main to GitLab
+      - name: Mirror to GitLab
         run: |
-          git remote add gitlab https://oauth2:${{ env.GITLAB_TOKEN }}@gitlab.com/alextermure/elongpt-discord-bot-2.0.git
-          git push gitlab HEAD:main --force
-          git push gitlab --tags --force
+          git clone --mirror "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" repo.git
+          cd repo.git
+          git push --mirror "https://oauth2:${GITLAB_TOKEN}@gitlab.com/alextermure/elongpt-discord-bot-2.0.git"

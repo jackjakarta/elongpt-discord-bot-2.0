@@ -15,6 +15,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: production
     timeout-minutes: 20
 
     steps:
@@ -107,7 +108,7 @@ jobs:
             echo "${{ env.DOCKER_PASSWORD }}" | docker login ghcr.io -u "${{ env.DOCKER_USERNAME }}" --password-stdin
             docker pull ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}
             docker rm -f elongpt-bot || true
-            docker run -d -t \
+            docker run -d \
               --env-file /tmp/elongpt-deploy/.env \
               --restart always \
               --name elongpt-bot \
