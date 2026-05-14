@@ -69,7 +69,7 @@ async def ask_command(
         ai = ChatGPT()
         prompt = question
 
-        message = await ai.ask_with_tools(
+        message = await ai.ask(
             prompt,
             user_name=user_name,
             files=base64_images if len(base64_images) > 0 else None,
@@ -156,9 +156,18 @@ async def imagine(
     symbol="The cryptocurrency symbol you want to get the price for"
 )
 async def price(interaction: discord.Interaction, symbol: str):
+    if CMC_API_KEY is None:
+        embed = create_embed(
+            title="Not configured",
+            description="CMC_PRO_API_KEY is not set on this bot.",
+        )
+
+        return await interaction.response.send_message(embed=embed)
+
     try:
         api_url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
         crypto_symbol = symbol.upper()
+
         params = {
             "symbol": crypto_symbol,
             "convert": "USD",

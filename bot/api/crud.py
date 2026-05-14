@@ -4,9 +4,13 @@ from .utils import get_endpoint_url, get_request_headers
 
 
 async def db_create_completion(discord_user: str, prompt: str, completion: str):
+    endpoint_url = get_endpoint_url("completion")
+    headers = get_request_headers()
+
+    if endpoint_url is None or headers is None:
+        return
+
     async with httpx.AsyncClient() as client:
-        endpoint_url = get_endpoint_url("completion")
-        headers = get_request_headers()
 
         data = {
             "discordUser": discord_user,

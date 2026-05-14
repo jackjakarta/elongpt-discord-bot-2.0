@@ -3,14 +3,14 @@ from datetime import datetime, timezone
 from discord import Interaction, Status
 from openai import AsyncOpenAI
 
-from bot.utils.settings import DGPT_API_KEY, DGPT_API_URL, DGPT_MODEL
+from bot.utils.settings import OPENAI_API_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL
 
 from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
 
 
 class ChatGPT:
-    def __init__(self, system_prompt=DEFAULT_SYSTEM_PROMPT, model=DGPT_MODEL):
-        self.client = AsyncOpenAI(api_key=DGPT_API_KEY, base_url=DGPT_API_URL)
+    def __init__(self, system_prompt=DEFAULT_SYSTEM_PROMPT, model=OPENAI_MODEL):
+        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
         self.model = model
         self.prompt = None
         self.completion = None
@@ -25,10 +25,11 @@ class ChatGPT:
         user_name: str,
         files: list | None = None,
         context: str = "",
+        tools: list | None = None,
+        tool_messages: list | None = None,
     ):
         self.prompt = prompt
         self.files = files[:5] if files else []
-
         today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
         self.messages = [
@@ -65,63 +66,11 @@ class ChatGPT:
             },
         ]
 
-        self.completion = await self.client.chat.completions.create(
-            model=self.model,
-            messages=self.messages,
-        )
-
-        return str(self.completion.choices[0].message.content)
-
-    async def ask_with_tools(
-        self,
-        prompt,
-        user_name: str,
-        files: list | None = None,
-        context: str = "",
-        tools: list | None = None,
-        tool_messages: list | None = None,
-    ):
-        self.prompt = prompt
-        self.files = files[:5] if files else []
-        today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
-        self.messages = [
-            {
-                "role": "developer",
-                "content": self.system_prompt.format(
-                    user_name=user_name,
-                    context=context,
-                    today_date=today_date,
-                ),
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": self.prompt,
-                    },
-                    *(
-                        [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{image}",
-                                },
-                            }
-                            for image in self.files
-                        ]
-                        if self.files
-                        else []
-                    ),
-                ],
-            },
-        ]
-
         if tool_messages:
             self.messages.extend(tool_messages)
 
         kwargs = {"model": self.model, "messages": self.messages}
+
         if tools:
             kwargs["tools"] = tools
 

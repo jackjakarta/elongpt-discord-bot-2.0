@@ -62,7 +62,16 @@ docker build -t elongpt:tag .
 
 ## Environment Variables
 
-Secrets are managed via 1Password (see `.env.op` for the full list). Key vars: `DISCORD_TOKEN`, `EVENTS_VOICE_CHANNEL_ID`, `OPENAI_API_KEY`, `CMC_PRO_API_KEY`, `BACKEND_API_URL`, `BACKEND_API_KEY`, `ADMIN_USER_ID`, `UTILS_API_URL`, `UTILS_API_KEY`, `DGPT_API_URL`, `DGPT_API_KEY`, `DGPT_MODEL`.
+Secrets are managed via 1Password (see `.env.op` for the full list).
+
+Required: `DISCORD_TOKEN`, `DGPT_API_URL`, `DGPT_API_KEY`, `DGPT_MODEL`.
+
+Optional (feature gates — startup does not crash without them, but the dependent feature is disabled):
+- `OPENAI_API_KEY` — `/imagine`
+- `CMC_PRO_API_KEY` — `/price`
+- `ADMIN_USER_ID` — `/synccommands`
+- `EVENTS_VOICE_CHANNEL_ID` — scheduled-event tool exposed to `/ask`
+- `BACKEND_API_URL` / `BACKEND_API_KEY` — completion logging to external backend
 
 Note: `ChatGPT` (chat completions) uses `DGPT_API_URL`/`DGPT_API_KEY` while `OpenAiImageGeneration` uses `OPENAI_API_KEY` directly.
 
