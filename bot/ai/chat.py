@@ -9,13 +9,12 @@ from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
 
 
 class ChatGPT:
-    def __init__(self, system_prompt=DEFAULT_SYSTEM_PROMPT, model=OPENAI_MODEL):
+    def __init__(self, model=OPENAI_MODEL):
         self.client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
         self.model = model
         self.prompt = None
         self.completion = None
         self.files = []
-        self.system_prompt = system_prompt
         self.messages = None
         self.user_name = None
 
@@ -35,7 +34,7 @@ class ChatGPT:
         self.messages = [
             {
                 "role": "developer",
-                "content": self.system_prompt.format(
+                "content": DEFAULT_SYSTEM_PROMPT.format(
                     user_name=user_name,
                     today_date=today_date,
                 ),
