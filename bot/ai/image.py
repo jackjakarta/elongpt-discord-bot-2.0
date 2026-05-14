@@ -2,13 +2,13 @@ import base64
 
 from openai import AsyncOpenAI
 
-from bot.utils.settings import OPENAI_API_BASE_URL, OPENAI_API_KEY
+from bot.utils.settings import OPENAI_API_BASE_URL, OPENAI_API_KEY, OPENAI_IMAGE_MODEL
 
 
 class OpenAiImageGeneration:
     """Image Generation with the OpenAI Image 1.5 model."""
 
-    def __init__(self, model="gpt-image-1.5"):
+    def __init__(self, model=OPENAI_IMAGE_MODEL):
         self.client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
         self.model = model
 
