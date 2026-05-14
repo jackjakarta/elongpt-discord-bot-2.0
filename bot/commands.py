@@ -69,7 +69,7 @@ async def ask_command(
         ai = ChatGPT()
         prompt = question
 
-        message = await ai.ask_with_tools(
+        message = await ai.ask(
             prompt,
             user_name=user_name,
             files=base64_images if len(base64_images) > 0 else None,
@@ -97,7 +97,7 @@ async def ask_command(
                     }
                 )
 
-            message = await ai.ask_with_tools(
+            message = await ai.ask(
                 prompt,
                 user_name=user_name,
                 files=base64_images if len(base64_images) > 0 else None,
@@ -106,7 +106,14 @@ async def ask_command(
                 tool_messages=tool_messages,
             )
 
-        response = str(message.content)
+        if message.content is None:
+            embed = create_embed(
+                title="No response",
+                description="The model didn't return a final answer. Please try again.",
+            )
+            return await interaction.followup.send(embed=embed)
+
+        response = message.content
         await interaction.followup.send(response)
 
         try:
@@ -156,17 +163,23 @@ async def imagine(
     symbol="The cryptocurrency symbol you want to get the price for"
 )
 async def price(interaction: discord.Interaction, symbol: str):
+    if CMC_API_KEY is None:
+        embed = create_embed(
+            title="Not configured",
+            description="CMC_PRO_API_KEY is not set on this bot.",
+        )
+
+        return await interaction.response.send_message(embed=embed)
+
     try:
         api_url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
         crypto_symbol = symbol.upper()
-        params = {
-            "symbol": crypto_symbol,
-            "convert": "USD",
-            "CMC_PRO_API_KEY": CMC_API_KEY,
-        }
+
+        params = {"symbol": crypto_symbol, "convert": "USD"}
+        headers = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(api_url, params=params)
+            response = await client.get(api_url, params=params, headers=headers)
 
         if response.status_code != 200:
             embed = create_embed(
@@ -174,7 +187,7 @@ async def price(interaction: discord.Interaction, symbol: str):
                 description=f"Could not get price and market capitalization for {crypto_symbol}",
             )
 
-            return await interaction.channel.send(embed=embed)
+            return await interaction.response.send_message(embed=embed)
 
         data = response.json()
         price = data["data"][crypto_symbol]["quote"]["USD"]["price"]

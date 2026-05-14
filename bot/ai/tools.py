@@ -20,9 +20,11 @@ class CreateScheduledEvent(pydantic.BaseModel):
     location: Optional[str] = None
 
 
-TOOL_DEFINITIONS = [
-    openai.pydantic_function_tool(CreateScheduledEvent),
-]
+TOOL_DEFINITIONS = (
+    [openai.pydantic_function_tool(CreateScheduledEvent)]
+    if EVENTS_VOICE_CHANNEL_ID is not None
+    else []
+)
 
 
 async def handle_create_scheduled_event(
