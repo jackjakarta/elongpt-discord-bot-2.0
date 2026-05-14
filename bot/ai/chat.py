@@ -3,13 +3,13 @@ from datetime import datetime, timezone
 from discord import Interaction, Status
 from openai import AsyncOpenAI
 
-from bot.utils.settings import OPENAI_API_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL
+from bot.utils.settings import OPENAI_API_BASE_URL, OPENAI_API_KEY, OPENAI_CHAT_MODEL
 
 from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
 
 
 class ChatGPT:
-    def __init__(self, model=OPENAI_MODEL):
+    def __init__(self, model=OPENAI_CHAT_MODEL):
         self.client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
         self.model = model
         self.prompt = None

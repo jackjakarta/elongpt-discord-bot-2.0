@@ -2,16 +2,17 @@ from typing import Final, Optional
 
 from decouple import config as env
 
+# required
 DISCORD_TOKEN: Final[str] = env("DISCORD_TOKEN")
 ADMIN_USER_ID: Final[str] = env("ADMIN_USER_ID")
-
 OPENAI_API_KEY: Final[str] = env("OPENAI_API_KEY")
-OPENAI_API_BASE_URL: Final[Optional[str]] = env("OPENAI_API_BASE_URL", None)
-OPENAI_MODEL: Final[str] = env("OPENAI_MODEL", "gpt-5.4-mini")
 
+# optional
+OPENAI_API_BASE_URL: Final[Optional[str]] = env("OPENAI_API_BASE_URL", None)
+OPENAI_CHAT_MODEL: Final[str] = env("OPENAI_CHAT_MODEL", "gpt-5.4-mini")
+OPENAI_IMAGE_MODEL: Final[str] = env("OPENAI_IMAGE_MODEL", "gpt-image-1.5")
 BACKEND_API_KEY: Final[Optional[str]] = env("BACKEND_API_KEY", None)
 BACKEND_API_URL: Final[Optional[str]] = env("BACKEND_API_URL", None)
-
 CMC_API_KEY: Final[Optional[str]] = env("CMC_PRO_API_KEY", None)
 EVENTS_VOICE_CHANNEL_ID: Final[Optional[int]] = env(
     "EVENTS_VOICE_CHANNEL_ID",
