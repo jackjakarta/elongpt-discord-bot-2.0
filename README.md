@@ -40,10 +40,7 @@ Run:
 
 ```bash
 docker run -d -t \
--e OPENAI_API_KEY=your-api-key \
--e DISCORD_TOKEN=your-api-key \
--e CMC_PRO_API_KEY=your-api-key \
-...rest of env vars \
+--env-file .env \
 --name elongpt-bot \
 yourimagename:tag
 ```

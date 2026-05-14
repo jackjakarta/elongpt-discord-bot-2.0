@@ -62,7 +62,7 @@ docker build -t elongpt:tag .
 
 ## Environment Variables
 
-Secrets are managed via 1Password (see `.env.op` for the full list). Key vars: `DISCORD_TOKEN`, `EVENTS_VOICE_CHANNEL_ID`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `CMC_PRO_API_KEY`, `BACKEND_API_URL`, `BACKEND_API_KEY`, `ADMIN_USER_ID`, `UTILS_API_URL`, `UTILS_API_KEY`, `DGPT_API_URL`, `DGPT_API_KEY`.
+Secrets are managed via 1Password (see `.env.op` for the full list). Key vars: `DISCORD_TOKEN`, `EVENTS_VOICE_CHANNEL_ID`, `OPENAI_API_KEY`, `CMC_PRO_API_KEY`, `BACKEND_API_URL`, `BACKEND_API_KEY`, `ADMIN_USER_ID`, `UTILS_API_URL`, `UTILS_API_KEY`, `DGPT_API_URL`, `DGPT_API_KEY`, `DGPT_MODEL`.
 
 Note: `ChatGPT` (chat completions) uses `DGPT_API_URL`/`DGPT_API_KEY` while `OpenAiImageGeneration` uses `OPENAI_API_KEY` directly.
 
@@ -79,4 +79,4 @@ Tags matching `*.*.*` trigger GitHub Actions: lint checks → Docker build → p
 
 ## Development
 
-You can always use the context7 mcp tools to search for library documentation when working with external libraries or in general.
+You can always use the context7 mcp tools to search for library documentation when working with external libraries. Never guess APIs from memory.

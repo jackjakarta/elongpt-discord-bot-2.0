@@ -9,6 +9,8 @@ on:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
       - name: Load 1password secrets
         uses: 1password/load-secrets-action@v1
