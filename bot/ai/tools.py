@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 import discord
 import httpx
@@ -29,8 +29,8 @@ class WebSearch(pydantic.BaseModel):
     that may have changed since your training cutoff."""
 
     query: str
-    count: Optional[int] = None  # 1-20, defaults to 10 when unset
-    freshness: Optional[str] = None  # "pd"|"pw"|"pm"|"py" or "YYYY-MM-DDtoYYYY-MM-DD"
+    count: int = pydantic.Field(default=10, ge=1, le=20)
+    freshness: Optional[Literal["pd", "pw", "pm", "py"]] = None
 
 
 TOOL_DEFINITIONS = []
@@ -83,11 +83,11 @@ async def handle_create_scheduled_event(
         return json.dumps({"error": str(e)})
 
 
-async def handle_web_search(args: WebSearch, guild: discord.Guild | None) -> str:
+async def handle_web_search(args: WebSearch, _guild: discord.Guild | None) -> str:
     if BRAVE_API_KEY is None:
         return json.dumps({"error": "Web search is not configured."})
 
-    params: dict = {"q": args.query, "count": args.count or 10}
+    params: dict = {"q": args.query, "count": args.count}
     if args.freshness:
         params["freshness"] = args.freshness
 
@@ -114,10 +114,8 @@ async def handle_web_search(args: WebSearch, guild: discord.Guild | None) -> str
             }
             for r in data.get("web", {}).get("results", [])
         ]
-        print(f"[WebSearch] query={args.query!r} returned {len(results)} results")
-        for i, r in enumerate(results, 1):
-            print(f"  {i}. {r['title']}\n     {r['url']}\n     {r['description']}")
-        return json.dumps({"query": args.query, "results": results})
+        payload = json.dumps({"query": args.query, "results": results})
+        return f"<search_results>{payload}</search_results>"
     except httpx.HTTPStatusError as e:
         return json.dumps(
             {"error": f"Brave Search returned HTTP {e.response.status_code}"}
