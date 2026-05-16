@@ -1,12 +1,15 @@
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 import discord
+import httpx
 import openai
 import pydantic
 
-from bot.utils.settings import EVENTS_VOICE_CHANNEL_ID
+from bot.utils.settings import BRAVE_API_KEY, EVENTS_VOICE_CHANNEL_ID
+
+BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 
 
 class CreateScheduledEvent(pydantic.BaseModel):
@@ -20,16 +23,30 @@ class CreateScheduledEvent(pydantic.BaseModel):
     location: Optional[str] = None
 
 
-TOOL_DEFINITIONS = (
-    [openai.pydantic_function_tool(CreateScheduledEvent)]
-    if EVENTS_VOICE_CHANNEL_ID is not None
-    else []
-)
+class WebSearch(pydantic.BaseModel):
+    """Search the web with Brave Search for current or factual information.
+    Use this when the user asks about recent events, current data, or facts
+    that may have changed since your training cutoff."""
+
+    query: str
+    count: int = pydantic.Field(default=10, ge=1, le=20)
+    freshness: Optional[Literal["pd", "pw", "pm", "py"]] = None
+
+
+TOOL_DEFINITIONS = []
+if EVENTS_VOICE_CHANNEL_ID is not None:
+    TOOL_DEFINITIONS.append(openai.pydantic_function_tool(CreateScheduledEvent))
+if BRAVE_API_KEY is not None:
+    TOOL_DEFINITIONS.append(openai.pydantic_function_tool(WebSearch))
 
 
 async def handle_create_scheduled_event(
-    args: CreateScheduledEvent, guild: discord.Guild
+    args: CreateScheduledEvent, guild: discord.Guild | None
 ) -> str:
+    if guild is None:
+        return json.dumps(
+            {"error": "Scheduling events requires a server. It cannot be used in DMs."}
+        )
     try:
         start = datetime.fromisoformat(args.start_time)
         if start.tzinfo is None:
@@ -66,19 +83,56 @@ async def handle_create_scheduled_event(
         return json.dumps({"error": str(e)})
 
 
+async def handle_web_search(args: WebSearch, _guild: discord.Guild | None) -> str:
+    if BRAVE_API_KEY is None:
+        return json.dumps({"error": "Web search is not configured."})
+
+    params: dict = {"q": args.query, "count": args.count}
+    if args.freshness:
+        params["freshness"] = args.freshness
+
+    headers = {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip",
+        "X-Subscription-Token": BRAVE_API_KEY,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                BRAVE_SEARCH_URL, params=params, headers=headers
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        results = [
+            {
+                "title": r.get("title"),
+                "url": r.get("url"),
+                "description": r.get("description"),
+                "age": r.get("age"),
+            }
+            for r in data.get("web", {}).get("results", [])
+        ]
+        payload = json.dumps({"query": args.query, "results": results})
+        return f"<search_results>{payload}</search_results>"
+    except httpx.HTTPStatusError as e:
+        return json.dumps(
+            {"error": f"Brave Search returned HTTP {e.response.status_code}"}
+        )
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
 TOOL_HANDLERS = {
     "CreateScheduledEvent": (CreateScheduledEvent, handle_create_scheduled_event),
+    "WebSearch": (WebSearch, handle_web_search),
 }
 
 
 async def execute_tool_call(
     tool_name: str, arguments_json: str, guild: discord.Guild | None
 ) -> str:
-    if guild is None:
-        return json.dumps(
-            {"error": "This action requires a server. It cannot be used in DMs."}
-        )
-
     handler_entry = TOOL_HANDLERS.get(tool_name)
     if not handler_entry:
         return json.dumps({"error": f"Unknown tool: {tool_name}"})
