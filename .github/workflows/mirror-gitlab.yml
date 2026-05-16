@@ -30,4 +30,4 @@ jobs:
         run: |
           git clone --mirror "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" repo.git
           cd repo.git
-          git push --mirror "https://oauth2:${GITLAB_TOKEN}@gitlab.com/alextermure/elongpt-discord-bot-2.0.git"
+          git push --mirror "https://oauth2:${GITLAB_TOKEN}@gitlab.com/jackjakarta/elongpt-discord-bot-2.0.git"
