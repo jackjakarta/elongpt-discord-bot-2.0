@@ -1,19 +1,24 @@
+.git
 .claude
 .vscode
 .github
 scripts
 env
-**pycache**/
+__pycache__/
+.DS_Store
 
 .gitignore
 .python-version
 .mcp.json
 .isort.cfg
 .flake8
-.env\*
+.env*
 .dockerignore
 
 README.md
 CLAUDE.md
 Dockerfile
+docker-compose.yml
 dev.py
+requirements*.in
+requirements-dev.txt

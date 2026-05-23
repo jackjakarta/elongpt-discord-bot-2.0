@@ -89,28 +89,28 @@ jobs:
           REMOTE_USER: "op://elon-gpt/github-secrets/REMOTE_USER"
           SSH_PRIVATE_KEY: "op://elon-gpt/github-secrets/SSH_PRIVATE_KEY"
 
-      - name: Copy .env to remote server
+      - name: Copy .env and compose file to remote server
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ env.REMOTE_HOST }}
           username: ${{ env.REMOTE_USER }}
           key: ${{ env.SSH_PRIVATE_KEY }}
-          source: ".env"
-          target: "/tmp/elongpt-deploy"
+          source: ".env,docker-compose.yml"
+          target: "~/elongpt"
 
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v0.1.6
+        env:
+          ELONGPT_IMAGE: "ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}"
         with:
           host: ${{ env.REMOTE_HOST }}
           username: ${{ env.REMOTE_USER }}
           key: ${{ env.SSH_PRIVATE_KEY }}
+          envs: ELONGPT_IMAGE,DOCKER_USERNAME,DOCKER_PASSWORD
           script: |
-            echo "${{ env.DOCKER_PASSWORD }}" | docker login ghcr.io -u "${{ env.DOCKER_USERNAME }}" --password-stdin
-            docker pull ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}
+            cd ~/elongpt
+            echo "$DOCKER_PASSWORD" | docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
+            # one-time migration: remove a container left over from the old `docker run` deploy
             docker rm -f elongpt-bot || true
-            docker run -d \
-              --env-file /tmp/elongpt-deploy/.env \
-              --restart always \
-              --name elongpt-bot \
-              "ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}"
-            rm -rf /tmp/elongpt-deploy
+            docker compose pull
+            docker compose up -d
