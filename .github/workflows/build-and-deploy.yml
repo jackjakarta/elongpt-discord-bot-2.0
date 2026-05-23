@@ -110,7 +110,6 @@ jobs:
           script: |
             cd ~/elongpt
             echo "$DOCKER_PASSWORD" | docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
-            # one-time migration: remove a container left over from the old `docker run` deploy
-            docker rm -f elongpt-bot || true
+
             docker compose pull
             docker compose up -d
