@@ -1,0 +1,26 @@
+services:
+  bot:
+    # Override with the GHCR ref on the prod host, e.g.
+    #   ELONGPT_IMAGE=ghcr.io/<user>/elongpt:1.2.3 docker compose up -d
+    # Locally, `docker compose up --build` builds from the Dockerfile instead.
+    image: ${ELONGPT_IMAGE:-ghcr.io/jackjakarta/elongpt:latest}
+    build: .
+    container_name: elongpt-bot
+    env_file:
+      - .env
+    restart: always
+
+    # --- hardening (the image already runs as non-root appuser, uid 10001) ---
+    read_only: true            # immutable root fs; bot writes nothing to disk
+    tmpfs:
+      - /tmp                   # only writable path the runtime may need
+    cap_drop:
+      - ALL                    # bot needs no Linux capabilities
+    security_opt:
+      - no-new-privileges:true # block setuid privilege escalation
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

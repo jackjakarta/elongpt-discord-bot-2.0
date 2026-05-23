@@ -1,3 +1,5 @@
+import json
+
 import httpx
 
 from .utils import get_endpoint_url, get_request_headers
@@ -14,7 +16,7 @@ async def db_create_completion(discord_user: str, prompt: str, completion: str):
         data = {
             "discordUser": discord_user,
             "prompt": prompt,
-            "completion": completion,
+            "completion": json.dumps(completion, indent=2),
         }
 
         response = await client.post(url=endpoint_url, headers=headers, json=data)

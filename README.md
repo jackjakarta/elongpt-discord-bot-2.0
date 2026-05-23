@@ -14,6 +14,12 @@ To set up this bot on your own server, follow these steps:
    pip install -r requirements.txt
    ```
 
+   For development (formatting, linting, and `dev.py` hot-reload), also install the dev tooling:
+
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
 4. Configure your environment variables following the template provided at `.env.op`.
 
 5. Start the bot by executing the following command:
@@ -28,19 +34,25 @@ To set up this bot on your own server, follow these steps:
    python dev.py
    ```
 
-### Or build and run with Docker
+### Or build and run with Docker Compose
 
-Build:
+With a `.env` file in place (see step 4 above), build and start the bot:
 
 ```bash
-docker build -t yourimagename:tag .
+docker compose up -d --build
 ```
 
-Run:
+The container runs as a non-root user with a read-only root filesystem and all
+Linux capabilities dropped (see `docker-compose.yml`). To run a prebuilt image
+from GHCR instead of building locally:
 
 ```bash
-docker run -d -t \
---env-file .env \
---name elongpt-bot \
-yourimagename:tag
+ELONGPT_IMAGE=ghcr.io/<user>/elongpt:<tag> docker compose up -d
+```
+
+Tail logs and stop with:
+
+```bash
+docker compose logs -f
+docker compose down
 ```
