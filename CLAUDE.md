@@ -73,6 +73,7 @@ Optional (feature gates / overrides — `settings.py` provides defaults or `None
 - `EVENTS_VOICE_CHANNEL_ID` — when unset, `TOOL_DEFINITIONS` is empty and `/ask` cannot schedule events
 - `CMC_PRO_API_KEY` — `/price` (short-circuits with a "not configured" embed when missing). Note: the Python constant is `CMC_API_KEY` but the env var is `CMC_PRO_API_KEY` — don't rename one without the other.
 - `BACKEND_API_URL` / `BACKEND_API_KEY` — completion logging to external backend; failures are caught and logged, not fatal
+- `IDLE_VOICE_TIMEOUT_SECONDS` / `IDLE_VOICE_TARGET_CHANNEL_ID` — idle-voice auto-mover (`bot/voice_idle.py`): a `tasks.loop` polls voice channels every 15s and moves self-deafened members who exceed the timeout to the target voice channel. Disabled unless **both** are set. `IDLE_VOICE_NOTIFY_CHANNEL_ID` (optional) is the text channel for the "moved" notice; when unset it falls back to the source voice channel's text chat. Requires the bot to have **Move Members**.
 
 ## Style
 

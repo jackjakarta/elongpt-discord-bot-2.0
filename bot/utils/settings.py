@@ -22,3 +22,20 @@ EVENTS_VOICE_CHANNEL_ID: Optional[int] = config(
     default=None,
     cast=lambda v: int(v) if v else None,
 )
+
+# idle-voice auto-mover (feature is off unless timeout + target are both set)
+IDLE_VOICE_TIMEOUT_SECONDS: Optional[int] = config(
+    "IDLE_VOICE_TIMEOUT_SECONDS",
+    default=None,
+    cast=lambda v: int(v) if v else None,
+)
+IDLE_VOICE_TARGET_CHANNEL_ID: Optional[int] = config(
+    "IDLE_VOICE_TARGET_CHANNEL_ID",
+    default=None,
+    cast=lambda v: int(v) if v else None,
+)
+IDLE_VOICE_NOTIFY_CHANNEL_ID: Optional[int] = config(
+    "IDLE_VOICE_NOTIFY_CHANNEL_ID",
+    default=None,
+    cast=lambda v: int(v) if v else None,
+)
