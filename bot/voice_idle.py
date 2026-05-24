@@ -34,7 +34,15 @@ async def _move_and_announce(
 
     notify_channel = source
     if IDLE_VOICE_NOTIFY_CHANNEL_ID is not None:
-        notify_channel = member.guild.get_channel(IDLE_VOICE_NOTIFY_CHANNEL_ID)
+        resolved = member.guild.get_channel(IDLE_VOICE_NOTIFY_CHANNEL_ID)
+        if resolved is None:
+            logger.warning(
+                "Notify channel %s not found in guild %s; falling back to source",
+                IDLE_VOICE_NOTIFY_CHANNEL_ID,
+                member.guild.id,
+            )
+        else:
+            notify_channel = resolved
 
     if notify_channel is None:
         return
@@ -72,6 +80,15 @@ def setup_idle_monitor(bot: commands.Bot) -> None:
 
         for guild in bot.guilds:
             target = guild.get_channel(IDLE_VOICE_TARGET_CHANNEL_ID)
+            if target is None:
+                continue  # expected: the target channel only exists in one guild
+            if not isinstance(target, discord.VoiceChannel):
+                logger.warning(
+                    "Idle target channel %s in guild %s is not a voice channel",
+                    IDLE_VOICE_TARGET_CHANNEL_ID,
+                    guild.id,
+                )
+                continue
             for vc in guild.voice_channels:
                 if vc.id == IDLE_VOICE_TARGET_CHANNEL_ID:
                     continue  # never herd people out of the AFK channel itself
@@ -83,14 +100,6 @@ def setup_idle_monitor(bot: commands.Bot) -> None:
                     still_deafened.add(member.id)
                     since = _idle_since.setdefault(member.id, now)
                     if (now - since).total_seconds() < IDLE_VOICE_TIMEOUT_SECONDS:
-                        continue
-
-                    if target is None:
-                        logger.warning(
-                            "Idle target channel %s not found in guild %s",
-                            IDLE_VOICE_TARGET_CHANNEL_ID,
-                            guild.id,
-                        )
                         continue
 
                     await _move_and_announce(member, source=vc, target=target)
