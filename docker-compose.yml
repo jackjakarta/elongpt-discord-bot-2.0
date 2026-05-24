@@ -1,9 +1,10 @@
 services:
   bot:
-    # Override with the GHCR ref on the prod host, e.g.
-    #   ELONGPT_IMAGE=ghcr.io/<user>/elongpt:1.2.3 docker compose up -d
-    # Locally, `docker compose up --build` builds from the Dockerfile instead.
-    image: ${ELONGPT_IMAGE:-ghcr.io/jackjakarta/elongpt:latest}
+    # Production: the deploy workflow writes ELONGPT_IMAGE=ghcr.io/<user>/elongpt:<tag>
+    # into .env, which Compose reads automatically for ${...} interpolation.
+    # Local build/run: pass it inline, e.g.
+    #   ELONGPT_IMAGE=elongpt:dev docker compose up --build
+    image: ${ELONGPT_IMAGE:?ELONGPT_IMAGE must be set (CI sets it; locally use ELONGPT_IMAGE=elongpt:dev)}
     build: .
     container_name: elongpt-bot
     env_file:

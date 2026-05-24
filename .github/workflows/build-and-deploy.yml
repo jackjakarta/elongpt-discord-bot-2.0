@@ -22,7 +22,7 @@ jobs:
       - name: Set up Docker image tags
         id: vars
         run: |
-          echo "TAG_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "TAG_VERSION=${{ github.event.inputs.tag || github.ref_name }}" >> $GITHUB_ENV
 
       - name: Load 1password secrets
         uses: 1password/load-secrets-action@v1
@@ -64,7 +64,7 @@ jobs:
       - name: Set up Docker image tags
         id: vars
         run: |
-          echo "TAG_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "TAG_VERSION=${{ github.event.inputs.tag || github.ref_name }}" >> $GITHUB_ENV
 
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v1
@@ -89,6 +89,11 @@ jobs:
           REMOTE_USER: "op://elon-gpt/github-secrets/REMOTE_USER"
           SSH_PRIVATE_KEY: "op://elon-gpt/github-secrets/SSH_PRIVATE_KEY"
 
+      - name: Pin deployed image in .env
+        run: |
+          sed -i '/^ELONGPT_IMAGE=/d' .env
+          echo "ELONGPT_IMAGE=ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}" >> .env
+
       - name: Copy .env and compose file to remote server
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -100,16 +105,13 @@ jobs:
 
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v0.1.6
-        env:
-          ELONGPT_IMAGE: "ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}"
         with:
           host: ${{ env.REMOTE_HOST }}
           username: ${{ env.REMOTE_USER }}
           key: ${{ env.SSH_PRIVATE_KEY }}
-          envs: ELONGPT_IMAGE,DOCKER_USERNAME,DOCKER_PASSWORD
           script: |
             cd ~/elongpt
-            echo "$DOCKER_PASSWORD" | docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
+            echo "${{ env.DOCKER_PASSWORD }}" | docker login ghcr.io -u "${{ env.DOCKER_USERNAME }}" --password-stdin
 
             docker compose pull
             docker compose up -d
