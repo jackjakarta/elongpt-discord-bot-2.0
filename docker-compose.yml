@@ -1,27 +1,20 @@
 services:
   bot:
-    # Production: the deploy workflow writes ELONGPT_IMAGE=ghcr.io/<user>/elongpt:<tag>
-    # into .env, which Compose reads automatically for ${...} interpolation.
-    # Local build/run: pass it inline, e.g.
-    #   ELONGPT_IMAGE=elongpt:dev docker compose up --build
     image: ${ELONGPT_IMAGE:?ELONGPT_IMAGE must be set (CI sets it; locally use ELONGPT_IMAGE=elongpt:dev)}
     build: .
     container_name: elongpt-bot
     env_file:
       - .env
     restart: always
-
-    # --- hardening (the image already runs as non-root appuser, uid 10001) ---
-    read_only: true            # immutable root fs; bot writes nothing to disk
+    read_only: true
     tmpfs:
-      - /tmp                   # only writable path the runtime may need
+      - /tmp
     cap_drop:
-      - ALL                    # bot needs no Linux capabilities
+      - ALL
     security_opt:
-      - no-new-privileges:true # block setuid privilege escalation
-
+      - no-new-privileges:true
     logging:
       driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'

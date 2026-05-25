@@ -8,7 +8,7 @@ from discord.ui import Button, View
 from .ai.chat import ChatGPT, get_chat_context
 from .ai.image import OpenAiImageGeneration
 from .ai.tools import TOOL_DEFINITIONS, execute_tool_call
-from .api.crud import db_create_completion
+from .db.completion import db_insert_completion
 from .utils import create_embed, image_to_base64
 from .utils.settings import ADMIN_USER_ID, CMC_API_KEY
 
@@ -117,14 +117,11 @@ async def ask_command(
         await interaction.followup.send(response)
 
         try:
-            await db_create_completion(user_name, prompt, response)
+            await db_insert_completion(
+                prompt=prompt, completion=response, discord_user=user_name
+            )
         except Exception as e:
             print(f"Failed to log completion: {e}")
-
-    except httpx.HTTPStatusError as e:
-        embed = create_embed(title="API Error:", description=e)
-        await interaction.followup.send(embed=embed)
-        print(f"API Error: {e}")
 
     except Exception as e:
         embed = create_embed(title="Unknown Error:", description=str(e))
