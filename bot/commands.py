@@ -117,7 +117,7 @@ async def ask_command(
         await interaction.followup.send(response)
 
         try:
-            db_insert_completion(
+            await db_insert_completion(
                 prompt=prompt, completion=response, discord_user=user_name
             )
         except Exception as e:

@@ -4,10 +4,20 @@
 #
 #    pip-compile --strip-extras requirements.in
 #
+aioboto3==15.5.0
+    # via -r requirements.in
+aiobotocore==2.25.1
+    # via aioboto3
+aiofiles==25.1.0
+    # via aioboto3
 aiohappyeyeballs==2.6.1
     # via aiohttp
 aiohttp==3.13.3
-    # via discord-py
+    # via
+    #   aiobotocore
+    #   discord-py
+aioitertools==0.13.0
+    # via aiobotocore
 aiosignal==1.4.0
     # via aiohttp
 annotated-types==0.7.0
@@ -18,10 +28,11 @@ anyio==4.6.2.post1
     #   openai
 attrs==24.2.0
     # via aiohttp
-boto3==1.43.14
-    # via -r requirements.in
-botocore==1.43.14
+boto3==1.40.61
+    # via aiobotocore
+botocore==1.40.61
     # via
+    #   aiobotocore
     #   boto3
     #   s3transfer
 certifi==2024.8.30
@@ -53,10 +64,12 @@ jiter==0.13.0
     # via openai
 jmespath==1.1.0
     # via
+    #   aiobotocore
     #   boto3
     #   botocore
 multidict==6.1.0
     # via
+    #   aiobotocore
     #   aiohttp
     #   yarl
 openai==2.28.0
@@ -72,10 +85,12 @@ pydantic==2.9.2
 pydantic-core==2.23.4
     # via pydantic
 python-dateutil==2.9.0.post0
-    # via botocore
+    # via
+    #   aiobotocore
+    #   botocore
 python-decouple==3.8
     # via -r requirements.in
-s3transfer==0.17.0
+s3transfer==0.14.0
     # via boto3
 six==1.17.0
     # via python-dateutil
@@ -94,5 +109,7 @@ typing-extensions==4.12.2
     #   pydantic-core
 urllib3==2.7.0
     # via botocore
+wrapt==1.17.3
+    # via aiobotocore
 yarl==1.18.3
     # via aiohttp
