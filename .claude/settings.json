@@ -19,6 +19,5 @@
       "mcp__openaiDeveloperDocs__*"
     ]
   },
-  "enabledMcpjsonServers": ["openaiDeveloperDocs"],
-  "disabledMcpjsonServers": []
+  "enabledMcpjsonServers": ["openaiDeveloperDocs"]
 }
