@@ -5,7 +5,7 @@ from openai import AsyncOpenAI
 
 from bot.utils.settings import OPENAI_API_BASE_URL, OPENAI_API_KEY, OPENAI_CHAT_MODEL
 
-from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
+from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT, WEB_EXTRACTION_PROMPT
 
 
 class ChatGPT:
@@ -82,6 +82,33 @@ class ChatGPT:
         models = [x.id for x in models_list]
 
         return sorted(models)
+
+
+async def run_web_extraction(prompt: str, content: str) -> str:
+    """Answer a question about one fetched web page, using only that page.
+
+    Deliberately skips DEFAULT_SYSTEM_PROMPT so the model concentrates on the
+    page rather than the bot persona. It also keeps the page markdown out of the
+    /ask conversation, which re-sends every accumulated tool message on each
+    round of its tool loop.
+    """
+    client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
+
+    completion = await client.chat.completions.create(
+        model=OPENAI_CHAT_MODEL,
+        messages=[
+            {"role": "developer", "content": WEB_EXTRACTION_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    f"Request: {prompt}\n\n"
+                    f"<page_content>\n{content}\n</page_content>"
+                ),
+            },
+        ],
+    )
+
+    return completion.choices[0].message.content or ""
 
 
 async def get_chat_context(

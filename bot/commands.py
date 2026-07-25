@@ -1,3 +1,4 @@
+import asyncio
 import io
 
 import discord
@@ -78,17 +79,25 @@ async def ask_command(
         )
 
         tool_messages = []
-        for _ in range(3):
+        for _ in range(5):
             if not message.tool_calls:
                 break
 
             tool_messages.append(message.to_dict())
 
-            for tc in message.tool_calls:
-                result = await execute_tool_call(
-                    tc.function.name, tc.function.arguments, interaction.guild
+            # run a round's calls concurrently — a search plus two fetches would
+            # otherwise pay three sequential HTTP + helper-model round trips.
+            # gather preserves order, so the tool_call_id pairing below is safe
+            results = await asyncio.gather(
+                *(
+                    execute_tool_call(
+                        tc.function.name, tc.function.arguments, interaction.guild
+                    )
+                    for tc in message.tool_calls
                 )
+            )
 
+            for tc, result in zip(message.tool_calls, results):
                 tool_messages.append(
                     {
                         "role": "tool",
