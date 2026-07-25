@@ -10,7 +10,7 @@ from .ai.chat import ChatGPT, get_chat_context
 from .ai.image import OpenAiImageGeneration
 from .ai.tools import TOOL_DEFINITIONS, execute_tool_call
 from .db.completion import db_insert_completion
-from .utils import create_embed, image_to_base64
+from .utils import create_embed, image_to_base64, split_message
 from .utils.settings import ADMIN_USER_ID, CMC_API_KEY
 
 bot = commands.Bot(command_prefix=".", intents=discord.Intents.all())
@@ -115,15 +115,19 @@ async def ask_command(
                 tool_messages=tool_messages,
             )
 
-        if message.content is None:
+        response = (message.content or "").strip()
+
+        if not response:
             embed = create_embed(
                 title="No response",
                 description="The model didn't return a final answer. Please try again.",
             )
             return await interaction.followup.send(embed=embed)
 
-        response = message.content
-        await interaction.followup.send(response)
+        # Discord rejects message content over 2000 characters, and a tool-using
+        # answer (news roundups especially) routinely runs longer than that
+        for chunk in split_message(response):
+            await interaction.followup.send(chunk)
 
         try:
             await db_insert_completion(

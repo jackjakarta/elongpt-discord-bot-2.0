@@ -59,6 +59,7 @@ docker build -t elongpt:tag .
 - The `/ask` command runs a tool-calling loop (up to 5 iterations) — it sends the prompt with tools, executes any tool calls, feeds results back, and repeats until the model responds with text. A round's tool calls run concurrently via `asyncio.gather` (order preserved, so `tool_call_id` pairing holds). The 5 is sized for search → fetch → fetch again → answer; dropping it back to 3 makes the model fall through to the "No response" embed
 - `get_chat_context()` builds context from online guild members + last 10 channel messages and is injected into the **user** prompt's `<context>` block (not the system prompt)
 - Long-running commands use `interaction.response.defer()` + `interaction.followup.send()` to avoid Discord's 3-second timeout
+- Discord rejects message content over 2000 characters (`50035`), and search-backed `/ask` answers routinely exceed it — send model output through `split_message()` (`bot/utils/__init__.py`) and post each chunk as its own followup. It breaks on the widest boundary that fits (paragraph → line → word) and closes/reopens a code fence a cut lands inside, so don't replace it with a plain slice
 - All env vars are centralized as typed `Final` constants in `bot/utils/settings.py`
 
 ## Environment Variables

@@ -1,13 +1,14 @@
 name: Static Checks
 
 on:
-  push:
-    branches: [main]
-
   pull_request:
     branches: [main]
 
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   checks:
@@ -16,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Read Python version
         id: python_version
