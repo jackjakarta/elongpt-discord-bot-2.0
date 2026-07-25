@@ -1,15 +1,13 @@
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Literal, Optional
+from typing import Optional
 
 import discord
 import httpx
 import openai
 import pydantic
 
-from bot.utils.settings import BRAVE_API_KEY, EVENTS_VOICE_CHANNEL_ID
-
-BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
+from bot.utils.settings import DGPT_SEARCH_URL, EVENTS_VOICE_CHANNEL_ID, OPENAI_API_KEY
 
 
 class CreateScheduledEvent(pydantic.BaseModel):
@@ -24,20 +22,19 @@ class CreateScheduledEvent(pydantic.BaseModel):
 
 
 class WebSearch(pydantic.BaseModel):
-    """Search the web with Brave Search for current or factual information.
+    """Search the web for current or factual information.
     Use this when the user asks about recent events, current data, or facts
     that may have changed since your training cutoff."""
 
     query: str
     count: int = pydantic.Field(default=10, ge=1, le=20)
-    freshness: Optional[Literal["pd", "pw", "pm", "py"]] = None
 
 
-TOOL_DEFINITIONS = []
+# web search authenticates with OPENAI_API_KEY, which is required, so it is
+# always available — only the event tool needs a feature gate
+TOOL_DEFINITIONS = [openai.pydantic_function_tool(WebSearch)]
 if EVENTS_VOICE_CHANNEL_ID is not None:
     TOOL_DEFINITIONS.append(openai.pydantic_function_tool(CreateScheduledEvent))
-if BRAVE_API_KEY is not None:
-    TOOL_DEFINITIONS.append(openai.pydantic_function_tool(WebSearch))
 
 
 async def handle_create_scheduled_event(
@@ -84,23 +81,18 @@ async def handle_create_scheduled_event(
 
 
 async def handle_web_search(args: WebSearch, _guild: discord.Guild | None) -> str:
-    if BRAVE_API_KEY is None:
-        return json.dumps({"error": "Web search is not configured."})
-
-    params: dict = {"q": args.query, "count": args.count}
-    if args.freshness:
-        params["freshness"] = args.freshness
+    payload_body = {"query": args.query, "count": args.count}
 
     headers = {
         "Accept": "application/json",
-        "Accept-Encoding": "gzip",
-        "X-Subscription-Token": BRAVE_API_KEY,
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
     }
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                BRAVE_SEARCH_URL, params=params, headers=headers
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                DGPT_SEARCH_URL, json=payload_body, headers=headers
             )
             response.raise_for_status()
             data = response.json()
@@ -112,13 +104,13 @@ async def handle_web_search(args: WebSearch, _guild: discord.Guild | None) -> st
                 "description": r.get("description"),
                 "age": r.get("age"),
             }
-            for r in data.get("web", {}).get("results", [])
+            for r in data.get("data", [])
         ]
         payload = json.dumps({"query": args.query, "results": results})
         return f"<search_results>{payload}</search_results>"
     except httpx.HTTPStatusError as e:
         return json.dumps(
-            {"error": f"Brave Search returned HTTP {e.response.status_code}"}
+            {"error": f"Web search returned HTTP {e.response.status_code}"}
         )
     except Exception as e:
         return json.dumps({"error": str(e)})

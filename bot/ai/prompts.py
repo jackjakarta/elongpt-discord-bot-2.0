@@ -1,27 +1,21 @@
-from bot.utils.settings import BRAVE_API_KEY, EVENTS_VOICE_CHANNEL_ID
+from bot.utils.settings import EVENTS_VOICE_CHANNEL_ID
 
 
 def _tools_sentence() -> str:
-    can_events = EVENTS_VOICE_CHANNEL_ID is not None
-    can_search = BRAVE_API_KEY is not None
-
-    if can_events and can_search:
+    # web search is always available; only event scheduling is gated
+    if EVENTS_VOICE_CHANNEL_ID is not None:
         capabilities = (
             "you can schedule Discord events, and you can search the web "
             "for current or factual information. Prefer the web-search tool "
             "when the user asks about recent events or facts you are not "
             "confident about."
         )
-    elif can_search:
+    else:
         capabilities = (
             "you can search the web for current or factual information. "
             "Prefer the web-search tool when the user asks about recent "
             "events or facts you are not confident about."
         )
-    elif can_events:
-        capabilities = "you can schedule Discord events."
-    else:
-        return ""
 
     return f"\n\n    You have tools available: {capabilities} Some tool parameters are optional."
 

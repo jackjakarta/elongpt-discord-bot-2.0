@@ -20,7 +20,11 @@ AWS_SECRET_ACCESS_KEY: Optional[str] = config("AWS_SECRET_ACCESS_KEY", default=N
 DYNAMODB_TABLE_NAME: str = config("DYNAMODB_TABLE_NAME", default="elongpt-completions")
 
 # tools (no setting this will not enable certain tools the model has)
-BRAVE_API_KEY: Optional[str] = config("BRAVE_API_KEY", default=None)
+# web search authenticates with OPENAI_API_KEY, so it needs no key of its own
+DGPT_SEARCH_URL: str = config(
+    "DGPT_SEARCH_URL",
+    default="https://api.deutschlandgpt.de/v2/search",
+)
 EVENTS_VOICE_CHANNEL_ID: Optional[int] = config(
     "EVENTS_VOICE_CHANNEL_ID",
     default=None,
