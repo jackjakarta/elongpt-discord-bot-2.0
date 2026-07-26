@@ -1,3 +1,4 @@
+import asyncio
 import io
 
 import discord
@@ -9,10 +10,14 @@ from .ai.chat import ChatGPT, get_chat_context
 from .ai.image import OpenAiImageGeneration
 from .ai.tools import TOOL_DEFINITIONS, execute_tool_call
 from .db.completion import db_insert_completion
-from .utils import create_embed, image_to_base64
+from .utils import create_embed, image_to_base64, split_message
 from .utils.settings import ADMIN_USER_ID, CMC_API_KEY
 
 bot = commands.Bot(command_prefix=".", intents=discord.Intents.all())
+
+# sized for search -> fetch -> fetch again -> answer; at 3 the model falls
+# through to the "No response" embed on multi-step questions
+TOOL_LOOP_ROUNDS = 5
 
 
 @bot.tree.command(name="synccommands", description="Sync commands with discord")
@@ -78,17 +83,25 @@ async def ask_command(
         )
 
         tool_messages = []
-        for _ in range(3):
+        for attempt in range(TOOL_LOOP_ROUNDS):
             if not message.tool_calls:
                 break
 
             tool_messages.append(message.to_dict())
 
-            for tc in message.tool_calls:
-                result = await execute_tool_call(
-                    tc.function.name, tc.function.arguments, interaction.guild
+            # run a round's calls concurrently — a search plus two fetches would
+            # otherwise pay three sequential HTTP + helper-model round trips.
+            # gather preserves order, so the tool_call_id pairing below is safe
+            results = await asyncio.gather(
+                *(
+                    execute_tool_call(
+                        tc.function.name, tc.function.arguments, interaction.guild
+                    )
+                    for tc in message.tool_calls
                 )
+            )
 
+            for tc, result in zip(message.tool_calls, results):
                 tool_messages.append(
                     {
                         "role": "tool",
@@ -97,24 +110,38 @@ async def ask_command(
                     }
                 )
 
+            # the last round must answer in prose: another set of tool calls
+            # would drop out of the loop with empty content, throwing away
+            # every round (and every fetch) already paid for
+            last_round = attempt == TOOL_LOOP_ROUNDS - 1
+
             message = await ai.ask(
                 prompt,
                 user_name=user_name,
                 files=base64_images if len(base64_images) > 0 else None,
                 context=context,
                 tools=TOOL_DEFINITIONS,
+                tool_choice="none" if last_round else None,
                 tool_messages=tool_messages,
             )
 
-        if message.content is None:
+        response = (message.content or "").strip()
+
+        if not response:
             embed = create_embed(
                 title="No response",
                 description="The model didn't return a final answer. Please try again.",
             )
             return await interaction.followup.send(embed=embed)
 
-        response = message.content
-        await interaction.followup.send(response)
+        # Discord rejects message content over 2000 characters, and a tool-using
+        # answer (news roundups especially) routinely runs longer than that.
+        # Mentions are pinned off because the answer can echo untrusted web page
+        # text — otherwise "start your reply with @everyone" is a working attack
+        for chunk in split_message(response):
+            await interaction.followup.send(
+                chunk, allowed_mentions=discord.AllowedMentions.none()
+            )
 
         try:
             await db_insert_completion(
