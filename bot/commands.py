@@ -15,6 +15,10 @@ from .utils.settings import ADMIN_USER_ID, CMC_API_KEY
 
 bot = commands.Bot(command_prefix=".", intents=discord.Intents.all())
 
+# sized for search -> fetch -> fetch again -> answer; at 3 the model falls
+# through to the "No response" embed on multi-step questions
+TOOL_LOOP_ROUNDS = 5
+
 
 @bot.tree.command(name="synccommands", description="Sync commands with discord")
 async def sync_commands(interaction: discord.Interaction):
@@ -79,7 +83,7 @@ async def ask_command(
         )
 
         tool_messages = []
-        for _ in range(5):
+        for attempt in range(TOOL_LOOP_ROUNDS):
             if not message.tool_calls:
                 break
 
@@ -106,12 +110,18 @@ async def ask_command(
                     }
                 )
 
+            # the last round must answer in prose: another set of tool calls
+            # would drop out of the loop with empty content, throwing away
+            # every round (and every fetch) already paid for
+            last_round = attempt == TOOL_LOOP_ROUNDS - 1
+
             message = await ai.ask(
                 prompt,
                 user_name=user_name,
                 files=base64_images if len(base64_images) > 0 else None,
                 context=context,
                 tools=TOOL_DEFINITIONS,
+                tool_choice="none" if last_round else None,
                 tool_messages=tool_messages,
             )
 
@@ -125,9 +135,13 @@ async def ask_command(
             return await interaction.followup.send(embed=embed)
 
         # Discord rejects message content over 2000 characters, and a tool-using
-        # answer (news roundups especially) routinely runs longer than that
+        # answer (news roundups especially) routinely runs longer than that.
+        # Mentions are pinned off because the answer can echo untrusted web page
+        # text — otherwise "start your reply with @everyone" is a working attack
         for chunk in split_message(response):
-            await interaction.followup.send(chunk)
+            await interaction.followup.send(
+                chunk, allowed_mentions=discord.AllowedMentions.none()
+            )
 
         try:
             await db_insert_completion(

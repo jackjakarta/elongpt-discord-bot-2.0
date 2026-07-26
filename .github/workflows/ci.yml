@@ -1,0 +1,42 @@
+name: CI
+
+# Reusable: called by static-checks.yml on PRs and by build-and-deploy.yml
+# before a release build, so the two can't drift apart
+on:
+  workflow_call:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Read Python version
+        id: python_version
+        run: |
+          echo "PYTHON_VERSION=$(cat .python-version)" >> $GITHUB_ENV
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements-dev.txt
+
+      - name: Format check
+        run: |
+          black --check .
+
+      - name: Import order check
+        run: |
+          isort --check-only .
+
+      - name: Linting check
+        run: |
+          flake8 .

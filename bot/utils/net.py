@@ -11,11 +11,6 @@ class UnsafeUrlError(Exception):
     """Raised when a URL must not be fetched (bad scheme or internal address)."""
 
 
-def host_from_url(url: str) -> str:
-    """Return the lowercased hostname of a URL, or "" if it has none."""
-    return (urlparse(url).hostname or "").lower()
-
-
 def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """True for any address that points back into our own network."""
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
@@ -28,6 +23,10 @@ def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         or ip.is_reserved
         or ip.is_multicast
         or ip.is_unspecified
+        # `is_private` reports False for CGNAT (100.64.0.0/10) — ipaddress encodes
+        # that carve-out only in `is_global`, and clouds route the range to internal
+        # services. `is_global` is True for multicast, so the checks above stay.
+        or not ip.is_global
     )
 
 

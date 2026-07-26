@@ -1,20 +1,24 @@
+import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import discord
 import httpx
-import markdownify
 import openai
 import pydantic
 from bs4 import BeautifulSoup
+from markdownify import MarkdownConverter
 
 from bot.ai.chat import run_web_extraction
 from bot.utils.net import UnsafeUrlError, assert_public_url
 from bot.utils.settings import DGPT_SEARCH_URL, EVENTS_VOICE_CHANNEL_ID, OPENAI_API_KEY
 
 MAX_FETCH_CHARS = 50_000  # markdown handed to the helper model
-MAX_FETCH_BYTES = 5_000_000  # hard body cap so a huge page can't exhaust memory
+# hard body cap so a huge page can't exhaust memory. Everything past
+# MAX_FETCH_CHARS of markdown is discarded anyway, so parsing more than this
+# only buys parse time
+MAX_FETCH_BYTES = 2_000_000
 MAX_REDIRECTS = 5
 WEB_FETCH_TIMEOUT = 15.0
 WEB_FETCH_USER_AGENT = "Mozilla/5.0 (compatible; elongpt-bot/1.0)"
@@ -166,15 +170,24 @@ NON_CONTENT_TAGS = [
 ]
 
 
-def _html_to_markdown(html: str) -> str:
+def _html_to_markdown(html: bytes) -> str:
+    """Convert a page body to Markdown. Blocking — call it via asyncio.to_thread.
+
+    Takes bytes rather than str so BeautifulSoup can sniff the encoding itself:
+    plenty of pages declare their charset only in <meta charset=...>, and
+    decoding those as UTF-8 up front turns them into mojibake the extraction
+    model then reads as fact.
+    """
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(NON_CONTENT_TAGS):
         tag.decompose()
 
-    return markdownify.markdownify(str(soup))
+    # convert_soup, not markdownify(str(soup)): the latter re-serializes the
+    # whole tree and markdownify parses it a second time, doubling the work
+    return MarkdownConverter().convert_soup(soup)
 
 
-async def _read_capped(response: httpx.Response) -> str:
+async def _read_capped(response: httpx.Response) -> bytes:
     """Read a streamed body, stopping once MAX_FETCH_BYTES have arrived."""
     chunks: list[bytes] = []
     total = 0
@@ -188,9 +201,7 @@ async def _read_capped(response: httpx.Response) -> str:
         chunks.append(chunk)
         total += len(chunk)
 
-    encoding = response.charset_encoding or "utf-8"
-
-    return b"".join(chunks).decode(encoding, errors="replace")
+    return b"".join(chunks)
 
 
 async def _fetch_page(url: str) -> tuple[str, str]:
@@ -210,6 +221,11 @@ async def _fetch_page(url: str) -> tuple[str, str]:
         for _ in range(MAX_REDIRECTS + 1):
             await assert_public_url(current)
 
+            # the model picks the whole URL, query string included, so this is
+            # the only record of what the bot sent where. Redirect hops land
+            # here too, since each one goes through this loop
+            print(f"WebFetch: GET {current}")
+
             async with client.stream("GET", current) as response:
                 if response.has_redirect_location:
                     current = str(response.next_request.url)
@@ -217,17 +233,28 @@ async def _fetch_page(url: str) -> tuple[str, str]:
 
                 response.raise_for_status()
                 content_type = response.headers.get("content-type", "").lower()
+                is_html = "html" in content_type
 
-                if "html" in content_type:
-                    body = await _read_capped(response)
-                    return str(response.url), _html_to_markdown(body)
+                if not is_html and not (
+                    content_type.startswith("text/") or "json" in content_type
+                ):
+                    raise _FetchError(
+                        f"Unsupported content type: {content_type or 'unknown'}"
+                    )
 
-                if content_type.startswith("text/") or "json" in content_type:
-                    return str(response.url), await _read_capped(response)
+                body = await _read_capped(response)
+                final_url = str(response.url)
+                charset = response.charset_encoding
 
-                raise _FetchError(
-                    f"Unsupported content type: {content_type or 'unknown'}"
-                )
+            # converted after the connection is released. html.parser is pure
+            # Python and markdownify walks the whole tree, so on a large page
+            # this is hundreds of ms of CPU — enough to stall the gateway
+            # heartbeat and every other command with it if left on the loop
+            if is_html:
+                return final_url, await asyncio.to_thread(_html_to_markdown, body)
+
+            # non-HTML has no <meta charset> to sniff, so the header is all we get
+            return final_url, body.decode(charset or "utf-8", errors="replace")
 
     raise _FetchError("Too many redirects.")
 

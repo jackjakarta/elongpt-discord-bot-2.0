@@ -25,6 +25,7 @@ class ChatGPT:
         files: list | None = None,
         context: str = "",
         tools: list | None = None,
+        tool_choice: str | None = None,
         tool_messages: list | None = None,
     ):
         self.prompt = prompt
@@ -73,6 +74,9 @@ class ChatGPT:
         if tools:
             kwargs["tools"] = tools
 
+            if tool_choice:
+                kwargs["tool_choice"] = tool_choice
+
         self.completion = await self.client.chat.completions.create(**kwargs)
 
         return self.completion.choices[0].message
@@ -84,6 +88,11 @@ class ChatGPT:
         return sorted(models)
 
 
+# module level on purpose: one extraction runs per fetched page, and a fresh
+# AsyncOpenAI each time would mean a new connection pool and TLS handshake
+_extraction_client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
+
+
 async def run_web_extraction(prompt: str, content: str) -> str:
     """Answer a question about one fetched web page, using only that page.
 
@@ -92,9 +101,7 @@ async def run_web_extraction(prompt: str, content: str) -> str:
     /ask conversation, which re-sends every accumulated tool message on each
     round of its tool loop.
     """
-    client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
-
-    completion = await client.chat.completions.create(
+    completion = await _extraction_client.chat.completions.create(
         model=OPENAI_CHAT_MODEL,
         messages=[
             {"role": "developer", "content": WEB_EXTRACTION_PROMPT},
