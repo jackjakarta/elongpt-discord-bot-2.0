@@ -9,7 +9,7 @@ from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT, WEB_EXTRACTION_
 
 
 async def get_chat_completion(
-    prompt,
+    prompt: str,
     user_name: str,
     files: list | None = None,
     context: str = "",
@@ -17,7 +17,7 @@ async def get_chat_completion(
     tool_choice: str | None = None,
     tool_messages: list | None = None,
 ):
-    extracted_files = files[:5] if files else []
+    capped_files = files[:5] if files else []
     today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     messages = [
@@ -37,19 +37,15 @@ async def get_chat_completion(
                         context=context, user_message=prompt
                     ),
                 },
-                *(
-                    [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{image}",
-                            },
-                        }
-                        for image in extracted_files
-                    ]
-                    if extracted_files
-                    else []
-                ),
+                *[
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image}",
+                        },
+                    }
+                    for image in capped_files
+                ],
             ],
         },
     ]

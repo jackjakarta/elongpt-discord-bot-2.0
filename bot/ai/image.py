@@ -5,7 +5,7 @@ from bot.utils.settings import OPENAI_IMAGE_MODEL
 from .openai_client import client
 
 
-async def generate_image(prompt):
+async def generate_image(prompt: str) -> bytes:
     response = await client.images.generate(
         model=OPENAI_IMAGE_MODEL,
         prompt=prompt,
