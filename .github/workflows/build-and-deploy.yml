@@ -33,9 +33,10 @@ jobs:
           echo "TAG_VERSION=${{ inputs.tag || github.ref_name }}" >> $GITHUB_ENV
 
       - name: Load 1password secrets
+        id: build-secrets
         uses: 1password/load-secrets-action@v4
         with:
-          export-env: true
+          export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           DOCKER_USERNAME: "op://elon-gpt/github-secrets/DOCKER_USERNAME"
@@ -51,16 +52,16 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          username: ${{ steps.build-secrets.outputs.DOCKER_USERNAME }}
+          password: ${{ steps.build-secrets.outputs.DOCKER_PASSWORD }}
 
       - name: Build and push docker image
         run: |
           docker build --no-cache \
-          -t ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }} \
-          -t ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:latest . && \
-          docker push ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }} && \
-          docker push ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:latest
+          -t ghcr.io/${{ steps.build-secrets.outputs.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }} \
+          -t ghcr.io/${{ steps.build-secrets.outputs.DOCKER_USERNAME }}/elongpt:latest . && \
+          docker push ghcr.io/${{ steps.build-secrets.outputs.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }} && \
+          docker push ghcr.io/${{ steps.build-secrets.outputs.DOCKER_USERNAME }}/elongpt:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -74,11 +75,11 @@ jobs:
         run: |
           echo "TAG_VERSION=${{ inputs.tag || github.ref_name }}" >> $GITHUB_ENV
 
-      - name: Install 1Password CLI
-        uses: 1password/install-cli-action@v4
-
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Install 1Password CLI
+        uses: 1password/install-cli-action@v4
 
       - name: Inject bot secrets into .env
         env:
@@ -86,9 +87,10 @@ jobs:
         run: ENVIRONMENT=production op inject -f -i .env.op -o .env
 
       - name: Load deploy secrets
+        id: deploy-secrets
         uses: 1password/load-secrets-action@v4
         with:
-          export-env: true
+          export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           DOCKER_USERNAME: "op://elon-gpt/github-secrets/DOCKER_USERNAME"
@@ -100,26 +102,26 @@ jobs:
       - name: Pin deployed image in .env
         run: |
           sed -i '/^ELONGPT_IMAGE=/d' .env
-          echo "ELONGPT_IMAGE=ghcr.io/${{ env.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}" >> .env
+          echo "ELONGPT_IMAGE=ghcr.io/${{ steps.deploy-secrets.outputs.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}" >> .env
 
       - name: Copy .env and compose file to remote server
         uses: appleboy/scp-action@v1.0.0
         with:
-          host: ${{ env.REMOTE_HOST }}
-          username: ${{ env.REMOTE_USER }}
-          key: ${{ env.SSH_PRIVATE_KEY }}
+          host: ${{ steps.deploy-secrets.outputs.REMOTE_HOST }}
+          username: ${{ steps.deploy-secrets.outputs.REMOTE_USER }}
+          key: ${{ steps.deploy-secrets.outputs.SSH_PRIVATE_KEY }}
           source: ".env,docker-compose.yml"
           target: "~/elongpt"
 
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ env.REMOTE_HOST }}
-          username: ${{ env.REMOTE_USER }}
-          key: ${{ env.SSH_PRIVATE_KEY }}
+          host: ${{ steps.deploy-secrets.outputs.REMOTE_HOST }}
+          username: ${{ steps.deploy-secrets.outputs.REMOTE_USER }}
+          key: ${{ steps.deploy-secrets.outputs.SSH_PRIVATE_KEY }}
           script: |
             cd ~/elongpt
-            echo "${{ env.DOCKER_PASSWORD }}" | docker login ghcr.io -u "${{ env.DOCKER_USERNAME }}" --password-stdin
+            echo "${{ steps.deploy-secrets.outputs.DOCKER_PASSWORD }}" | docker login ghcr.io -u "${{ steps.deploy-secrets.outputs.DOCKER_USERNAME }}" --password-stdin
 
             docker compose pull
             docker compose up -d
