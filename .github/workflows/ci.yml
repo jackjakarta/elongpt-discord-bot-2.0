@@ -1,7 +1,5 @@
 name: CI
 
-# Reusable: called by static-checks.yml on PRs and by build-and-deploy.yml
-# before a release build, so the two can't drift apart
 on:
   workflow_call:
 
@@ -14,15 +12,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Read Python version
-        id: python_version
-        run: |
-          echo "PYTHON_VERSION=$(cat .python-version)" >> $GITHUB_ENV
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "${{ env.PYTHON_VERSION }}"
+          python-version-file: .python-version
 
       - name: Install dependencies
         run: |
