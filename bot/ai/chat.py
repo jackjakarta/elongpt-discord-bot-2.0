@@ -1,96 +1,69 @@
 from datetime import datetime, timezone
 
 from discord import Interaction, Status
-from openai import AsyncOpenAI
 
-from bot.utils.settings import OPENAI_API_BASE_URL, OPENAI_API_KEY, OPENAI_CHAT_MODEL
+from bot.utils.settings import OPENAI_CHAT_MODEL
 
+from .openai_client import client
 from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT, WEB_EXTRACTION_PROMPT
 
 
-class ChatGPT:
-    def __init__(self, model=OPENAI_CHAT_MODEL):
-        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
-        self.model = model
-        self.prompt = None
-        self.completion = None
-        self.files = []
-        self.messages = None
-        self.user_name = None
+async def get_chat_completion(
+    prompt: str,
+    user_name: str,
+    files: list | None = None,
+    context: str = "",
+    tools: list | None = None,
+    tool_choice: str | None = None,
+    tool_messages: list | None = None,
+):
+    capped_files = files[:5] if files else []
+    today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    async def ask(
-        self,
-        prompt,
-        user_name: str,
-        files: list | None = None,
-        context: str = "",
-        tools: list | None = None,
-        tool_choice: str | None = None,
-        tool_messages: list | None = None,
-    ):
-        self.prompt = prompt
-        self.files = files[:5] if files else []
-        today_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
-        self.messages = [
-            {
-                "role": "developer",
-                "content": DEFAULT_SYSTEM_PROMPT.format(
-                    user_name=user_name,
-                    today_date=today_date,
-                ),
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": DEFAULT_USER_PROMPT.format(
-                            context=context, user_message=self.prompt
-                        ),
-                    },
-                    *(
-                        [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{image}",
-                                },
-                            }
-                            for image in self.files
-                        ]
-                        if self.files
-                        else []
+    messages = [
+        {
+            "role": "developer",
+            "content": DEFAULT_SYSTEM_PROMPT.format(
+                user_name=user_name,
+                today_date=today_date,
+            ),
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": DEFAULT_USER_PROMPT.format(
+                        context=context, user_message=prompt
                     ),
+                },
+                *[
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image}",
+                        },
+                    }
+                    for image in capped_files
                 ],
-            },
-        ]
+            ],
+        },
+    ]
 
-        if tool_messages:
-            self.messages.extend(tool_messages)
+    if tool_messages:
+        messages.extend(tool_messages)
 
-        kwargs = {"model": self.model, "messages": self.messages}
+    kwargs = {"model": OPENAI_CHAT_MODEL, "messages": messages}
 
-        if tools:
-            kwargs["tools"] = tools
+    if tools:
+        kwargs["tools"] = tools
 
-            if tool_choice:
-                kwargs["tool_choice"] = tool_choice
+        if tool_choice:
+            kwargs["tool_choice"] = tool_choice
 
-        self.completion = await self.client.chat.completions.create(**kwargs)
+    completion = await client.chat.completions.create(**kwargs)
 
-        return self.completion.choices[0].message
-
-    async def get_models(self):
-        models_list = await self.client.models.list().data
-        models = [x.id for x in models_list]
-
-        return sorted(models)
-
-
-# module level on purpose: one extraction runs per fetched page, and a fresh
-# AsyncOpenAI each time would mean a new connection pool and TLS handshake
-_extraction_client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
+    return completion.choices[0].message
 
 
 async def run_web_extraction(prompt: str, content: str) -> str:
@@ -101,7 +74,7 @@ async def run_web_extraction(prompt: str, content: str) -> str:
     /ask conversation, which re-sends every accumulated tool message on each
     round of its tool loop.
     """
-    completion = await _extraction_client.chat.completions.create(
+    completion = await client.chat.completions.create(
         model=OPENAI_CHAT_MODEL,
         messages=[
             {"role": "developer", "content": WEB_EXTRACTION_PROMPT},

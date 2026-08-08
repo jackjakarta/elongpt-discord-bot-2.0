@@ -6,8 +6,8 @@ import httpx
 from discord.ext import commands
 from discord.ui import Button, View
 
-from .ai.chat import ChatGPT, get_chat_context
-from .ai.image import OpenAiImageGeneration
+from .ai.chat import get_chat_completion, get_chat_context
+from .ai.image import generate_image
 from .ai.tools import TOOL_DEFINITIONS, execute_tool_call
 from .db.completion import db_insert_completion
 from .utils import create_embed, image_to_base64, split_message
@@ -71,11 +71,8 @@ async def ask_command(
                 image_base64 = image_to_base64(file_data)
                 base64_images.append(image_base64)
 
-        ai = ChatGPT()
-        prompt = question
-
-        message = await ai.ask(
-            prompt,
+        message = await get_chat_completion(
+            prompt=question,
             user_name=user_name,
             files=base64_images if len(base64_images) > 0 else None,
             context=context,
@@ -115,8 +112,8 @@ async def ask_command(
             # every round (and every fetch) already paid for
             last_round = attempt == TOOL_LOOP_ROUNDS - 1
 
-            message = await ai.ask(
-                prompt,
+            message = await get_chat_completion(
+                prompt=question,
                 user_name=user_name,
                 files=base64_images if len(base64_images) > 0 else None,
                 context=context,
@@ -145,7 +142,7 @@ async def ask_command(
 
         try:
             await db_insert_completion(
-                prompt=prompt, completion=response, discord_user=user_name
+                prompt=question, completion=response, discord_user=user_name
             )
         except Exception as e:
             print(f"Failed to log completion: {e}")
@@ -167,8 +164,7 @@ async def imagine(
     await interaction.response.defer()
 
     try:
-        ai = OpenAiImageGeneration()
-        image_bytes = await ai.generate_image(description)
+        image_bytes = await generate_image(description)
 
         file = discord.File(io.BytesIO(image_bytes), filename="image.png")
         await interaction.followup.send(file=file)

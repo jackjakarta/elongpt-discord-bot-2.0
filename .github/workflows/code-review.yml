@@ -1,10 +1,6 @@
 name: Code Review
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, ready_for_review]
-
   workflow_dispatch:
     inputs:
       pr_number:
@@ -12,14 +8,13 @@ on:
         required: true
 
 concurrency:
-  group: code-review-${{ inputs.pr_number || github.event.pull_request.number }}
+  group: code-review-${{ inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
   code-review:
-    if: ${{ github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     permissions:
       contents: read
@@ -46,7 +41,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+            PR NUMBER: ${{ inputs.pr_number }}
 
             Please review this pull request with a focus on:
             - Code quality and best practices

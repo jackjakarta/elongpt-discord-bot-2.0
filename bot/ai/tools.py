@@ -5,10 +5,10 @@ from typing import Optional
 
 import discord
 import httpx
-import openai
-import pydantic
 from bs4 import BeautifulSoup
 from markdownify import MarkdownConverter
+from openai import pydantic_function_tool
+from pydantic import BaseModel, Field
 
 from bot.ai.chat import run_web_extraction
 from bot.utils.net import UnsafeUrlError, assert_public_url
@@ -26,7 +26,7 @@ WEB_FETCH_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=
 FALLBACK_EXCERPT_CHARS = 8_000
 
 
-class CreateScheduledEvent(pydantic.BaseModel):
+class CreateScheduledEvent(BaseModel):
     """Create a scheduled event in the Discord server.
     Use this when the user wants to schedule or create an event."""
 
@@ -37,17 +37,17 @@ class CreateScheduledEvent(pydantic.BaseModel):
     location: Optional[str] = None
 
 
-class WebSearch(pydantic.BaseModel):
+class WebSearch(BaseModel):
     """Search the web for current or factual information.
     Use this when the user asks about recent events, current data, or facts
     that may have changed since your training cutoff. Results are short snippets
     only — use WebFetch on a result URL to read what the page actually says."""
 
     query: str
-    count: int = pydantic.Field(default=10, ge=1, le=20)
+    count: int = Field(default=10, ge=1, le=20)
 
 
-class WebFetch(pydantic.BaseModel):
+class WebFetch(BaseModel):
     """Fetch a single web page and answer a question about its contents.
 
     Give the `url` to retrieve and a `prompt` describing what you want from the
@@ -68,11 +68,12 @@ class _FetchError(Exception):
 # web search and web fetch authenticate with OPENAI_API_KEY, which is required,
 # so they are always available — only the event tool needs a feature gate
 TOOL_DEFINITIONS = [
-    openai.pydantic_function_tool(WebSearch),
-    openai.pydantic_function_tool(WebFetch),
+    pydantic_function_tool(WebSearch),
+    pydantic_function_tool(WebFetch),
 ]
+
 if EVENTS_VOICE_CHANNEL_ID is not None:
-    TOOL_DEFINITIONS.append(openai.pydantic_function_tool(CreateScheduledEvent))
+    TOOL_DEFINITIONS.append(pydantic_function_tool(CreateScheduledEvent))
 
 
 async def handle_create_scheduled_event(
