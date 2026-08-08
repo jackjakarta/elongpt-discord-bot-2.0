@@ -1,25 +1,18 @@
 import base64
 
-from openai import AsyncOpenAI
+from bot.utils.settings import OPENAI_IMAGE_MODEL
 
-from bot.utils.settings import OPENAI_API_BASE_URL, OPENAI_API_KEY, OPENAI_IMAGE_MODEL
+from .openai_client import client
 
 
-class OpenAiImageGeneration:
-    """Image Generation with the OpenAI Image 1.5 model."""
+async def generate_image(prompt):
+    response = await client.images.generate(
+        model=OPENAI_IMAGE_MODEL,
+        prompt=prompt,
+        n=1,
+        size="1024x1024",
+        moderation="low",
+    )
 
-    def __init__(self, model=OPENAI_IMAGE_MODEL):
-        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE_URL)
-        self.model = model
-
-    async def generate_image(self, prompt):
-        response = await self.client.images.generate(
-            model=self.model,
-            prompt=prompt,
-            n=1,
-            size="1024x1024",
-            moderation="low",
-        )
-
-        image_bytes = base64.b64decode(response.data[0].b64_json)
-        return image_bytes
+    image_bytes = base64.b64decode(response.data[0].b64_json)
+    return image_bytes
