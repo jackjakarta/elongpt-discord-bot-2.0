@@ -49,6 +49,14 @@ ELONGPT_IMAGE=elongpt:dev docker compose up -d --build
 
 `docker-compose.yml` requires `ELONGPT_IMAGE` (no default — CI pins it to the GHCR tag) and reads secrets from a `.env` file. The container runs read-only with `cap_drop: ALL`, so anything that needs to write must go under the `/tmp` tmpfs.
 
+The image is a multi-stage build on **alpine** (~157MB; it was 335MB on `python:3.12-slim`). Both stages pin the same digest — a multi-arch index, so CI's amd64 and local arm64 both resolve. Three things in the Dockerfile are load-bearing:
+
+- **Alpine means musl, so every dependency needs a musllinux wheel.** The install runs with `--only-binary=:all:` so a package without one fails the build instead of trying a source build the image has no toolchain for. If a new dependency breaks the build here, that's the cause — the fix is a different package or a `build-base` install confined to the builder stage, not dropping the flag.
+- **`botocore/data` is pruned to `dynamodb` + `sts`** (~24MB of ~400 AWS service models otherwise). Calling a _different_ AWS service raises `UnknownServiceError` at runtime, not at build time — add its data directory to the `find` exclusions in the same commit.
+- **The venv is built `--without-pip`** and populated by the builder's pip via `pip --python /opt/venv/bin/python install` (the `--python` flag must precede the subcommand). Nothing installs packages at runtime.
+
+Bytecode is deliberately kept in the image: `--no-compile` would save ~28MB but doubles cold-start import (0.61s → 1.22s measured), and under `read_only: true` nothing can cache `.pyc` afterward, so that cost repeats on every restart.
+
 ## Architecture
 
 **Entry points:** `main.py` (production) and `dev.py` (hot-reload wrapper). `main.py` starts the bot, registers an `on_ready` event with a status loop, and calls `bot.run()`. `dev.py` wraps `main.py` with watchdog for file-change auto-reload.
