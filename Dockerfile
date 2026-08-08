@@ -1,25 +1,32 @@
-FROM python:3.12-slim@sha256:090ba77e2958f6af52a5341f788b50b032dd4ca28377d2893dcf1ecbdfdfe203 AS builder
+FROM python:3.12-alpine AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+RUN python -m venv --without-pip /opt/venv
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
 
-# ---- runtime ----
-FROM python:3.12-slim@sha256:090ba77e2958f6af52a5341f788b50b032dd4ca28377d2893dcf1ecbdfdfe203
+RUN python -m pip --python /opt/venv/bin/python install \
+        --no-cache-dir --only-binary=:all: -r requirements.txt
+
+# botocore bundles API models for ~400 AWS services (~24MB); this bot only ever
+# talks to DynamoDB. sts stays because botocore's default credential chain
+# reaches for it (assume-role / web identity). Using another AWS service means
+# adding its data directory here, or boto3 raises UnknownServiceError at runtime.
+RUN find /opt/venv/lib/python3.12/site-packages/botocore/data \
+        -mindepth 1 -maxdepth 1 -type d \
+        ! -name dynamodb ! -name sts -exec rm -rf {} +
+
+FROM python:3.12-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
 
-RUN useradd --create-home --uid 10001 appuser
+RUN adduser -D -u 10001 appuser
 
 WORKDIR /app
 

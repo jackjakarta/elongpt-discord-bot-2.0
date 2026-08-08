@@ -4,8 +4,9 @@
 .github
 scripts
 env
-__pycache__/
-.DS_Store
+**/__pycache__
+**/*.py[cod]
+**/.DS_Store
 
 .gitignore
 .python-version
