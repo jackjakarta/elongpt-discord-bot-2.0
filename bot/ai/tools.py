@@ -65,15 +65,33 @@ class _FetchError(Exception):
     """A fetch failure whose message is meant to be handed back to the model."""
 
 
+def _tool_definition(model: type[BaseModel]) -> dict:
+    """Build a function-tool definition portable across compatible providers.
+
+    pydantic_function_tool() stamps `strict: true` on the tool, which is an
+    OpenAI-only field. Gateways that forward to a non-OpenAI model translate the
+    tool into that provider's shape and reject the extra key outright (Anthropic
+    answers 400 `tools.0.custom.strict: Extra inputs are not permitted`), so the
+    whole request fails before the model ever sees the prompt. Dropping it costs
+    little: the generated schema keeps `additionalProperties: false` and its
+    required list, and execute_tool_call() validates arguments with the same
+    pydantic model anyway, handing a bad call back to the model as an error.
+    """
+    definition = pydantic_function_tool(model)
+    definition["function"].pop("strict", None)
+
+    return definition
+
+
 # web search and web fetch authenticate with OPENAI_API_KEY, which is required,
 # so they are always available — only the event tool needs a feature gate
 TOOL_DEFINITIONS = [
-    pydantic_function_tool(WebSearch),
-    pydantic_function_tool(WebFetch),
+    _tool_definition(WebSearch),
+    _tool_definition(WebFetch),
 ]
 
 if EVENTS_VOICE_CHANNEL_ID is not None:
-    TOOL_DEFINITIONS.append(pydantic_function_tool(CreateScheduledEvent))
+    TOOL_DEFINITIONS.append(_tool_definition(CreateScheduledEvent))
 
 
 async def handle_create_scheduled_event(
