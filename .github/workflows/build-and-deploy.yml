@@ -68,6 +68,8 @@ jobs:
     environment: production
     timeout-minutes: 10
     needs: build
+    env:
+      HETZNER_FIREWALL: web-default-firewall
 
     steps:
       - name: Set up Docker image tags
@@ -98,11 +100,36 @@ jobs:
           REMOTE_HOST: "op://elon-gpt/github-secrets/REMOTE_HOST"
           REMOTE_USER: "op://elon-gpt/github-secrets/REMOTE_USER"
           SSH_PRIVATE_KEY: "op://elon-gpt/github-secrets/SSH_PRIVATE_KEY"
+          HCLOUD_TOKEN: "op://elon-gpt/github-secrets/HCLOUD_TOKEN"
 
       - name: Pin deployed image in .env
         run: |
           sed -i '/^ELONGPT_IMAGE=/d' .env
           echo "ELONGPT_IMAGE=ghcr.io/${{ steps.deploy-secrets.outputs.DOCKER_USERNAME }}/elongpt:${{ env.TAG_VERSION }}" >> .env
+
+      - name: Install hcloud CLI
+        uses: hetznercloud/setup-hcloud@v1
+
+      - name: Get runner public IP
+        id: runner-ip
+        run: |
+          ip=$(curl -4 -fsS --retry 3 https://api.ipify.org)
+          if ! [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Could not determine runner IPv4, got: '$ip'" >&2
+            exit 1
+          fi
+          echo "ip=$ip" >> "$GITHUB_OUTPUT"
+
+      # Scoped to this runner's IP only; removed again in the always() step below.
+      - name: Open SSH on Hetzner firewall for this runner
+        id: open-ssh
+        env:
+          HCLOUD_TOKEN: ${{ steps.deploy-secrets.outputs.HCLOUD_TOKEN }}
+        run: |
+          hcloud firewall add-rule "$HETZNER_FIREWALL" \
+            --direction in --protocol tcp --port 22 \
+            --source-ips "${{ steps.runner-ip.outputs.ip }}/32" \
+            --description "ci-deploy-ssh"
 
       - name: Copy .env and compose file to remote server
         uses: appleboy/scp-action@v1.0.0
@@ -125,3 +152,15 @@ jobs:
 
             docker compose pull
             docker compose up -d
+
+      # Runs even if the deploy failed or was cancelled, so the port never stays open.
+      # Flags must match the add-rule call exactly — hcloud deletes by matching the whole rule.
+      - name: Close SSH on Hetzner firewall
+        if: always() && steps.open-ssh.outcome != 'skipped'
+        env:
+          HCLOUD_TOKEN: ${{ steps.deploy-secrets.outputs.HCLOUD_TOKEN }}
+        run: |
+          hcloud firewall delete-rule "$HETZNER_FIREWALL" \
+            --direction in --protocol tcp --port 22 \
+            --source-ips "${{ steps.runner-ip.outputs.ip }}/32" \
+            --description "ci-deploy-ssh"
