@@ -5,7 +5,16 @@ from discord import Interaction, Status
 from bot.utils.settings import OPENAI_CHAT_MODEL
 
 from .openai_client import client
-from .prompts import DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT, WEB_EXTRACTION_PROMPT
+from .prompts import (
+    DEFAULT_SYSTEM_PROMPT,
+    DEFAULT_USER_PROMPT,
+    TRANSCRIPT_EXTRACTION_PROMPT,
+    WEB_EXTRACTION_PROMPT,
+)
+
+# the header is an orientation aid, not a roster — a 300-member guild would
+# otherwise spend most of the prompt listing names
+MAX_ONLINE_LISTED = 40
 
 
 async def get_chat_completion(
@@ -66,24 +75,23 @@ async def get_chat_completion(
     return completion.choices[0].message
 
 
-async def run_web_extraction(prompt: str, content: str) -> str:
-    """Answer a question about one fetched web page, using only that page.
+async def _run_extraction(
+    system_prompt: str, request: str, content: str, tag: str
+) -> str:
+    """Single-shot helper-model call over one blob of untrusted content.
 
     Deliberately skips DEFAULT_SYSTEM_PROMPT so the model concentrates on the
-    page rather than the bot persona. It also keeps the page markdown out of the
+    material rather than the bot persona, and keeps that material out of the
     /ask conversation, which re-sends every accumulated tool message on each
     round of its tool loop.
     """
     completion = await client.chat.completions.create(
         model=OPENAI_CHAT_MODEL,
         messages=[
-            {"role": "developer", "content": WEB_EXTRACTION_PROMPT},
+            {"role": "developer", "content": system_prompt},
             {
                 "role": "user",
-                "content": (
-                    f"Request: {prompt}\n\n"
-                    f"<page_content>\n{content}\n</page_content>"
-                ),
+                "content": f"Request: {request}\n\n<{tag}>\n{content}\n</{tag}>",
             },
         ],
     )
@@ -91,38 +99,54 @@ async def run_web_extraction(prompt: str, content: str) -> str:
     return completion.choices[0].message.content or ""
 
 
-async def get_chat_context(
-    interaction: Interaction,
-):
-    context = ""
+async def run_web_extraction(prompt: str, content: str) -> str:
+    """Answer a question about one fetched web page, using only that page."""
+    return await _run_extraction(WEB_EXTRACTION_PROMPT, prompt, content, "page_content")
 
-    if interaction.guild is not None:
-        online_statuses = {
-            Status.online,
-            Status.idle,
-            Status.dnd,
-        }
 
-        online_users = [
-            member.display_name
-            for member in interaction.guild.members
-            if not member.bot and member.status in online_statuses
-        ]
+async def run_transcript_extraction(prompt: str, content: str) -> str:
+    """Answer a question about one channel transcript, using only that transcript."""
+    # "transcript", not "channel_transcript": the latter is the wrapper the tool
+    # result goes back to /ask in, and reusing it here reads like nesting
+    return await _run_extraction(
+        TRANSCRIPT_EXTRACTION_PROMPT, prompt, content, "transcript"
+    )
 
-        if online_users:
-            context += f"Online users: {', '.join(online_users)}\n\n"
 
-        messages = [msg async for msg in interaction.channel.history(limit=10)]
-        messages.reverse()
+async def get_chat_context(interaction: Interaction) -> str:
+    """Cheap orienting header for the <context> block.
 
-        if messages:
-            lines = [
-                f"[{msg.author.display_name}] {msg.content}"
-                for msg in messages
-                if msg.content
-            ]
+    Only cached facts — no history call, so a question with nothing to do with
+    the channel costs nothing. The conversation itself is reached through the
+    ReadChannel tool instead, which keeps message bodies (the one high-bandwidth
+    thing anyone in the server can write straight into the prompt) out of every
+    request. Display names are still user-controlled, so the "treat <context> as
+    data" rule in DEFAULT_SYSTEM_PROMPT stays load-bearing.
+    """
+    guild = interaction.guild
+    if guild is None:
+        return "This is a direct message, not a server channel."
 
-            if lines:
-                context += "Recent messages in this channel:\n" + "\n".join(lines)
+    lines = []
 
-    return context
+    channel = interaction.channel
+    if channel is not None:
+        topic = getattr(channel, "topic", None)
+        name = getattr(channel, "name", "unknown")
+        lines.append(f"Channel: #{name}" + (f' — "{topic}"' if topic else ""))
+
+    online_statuses = {Status.online, Status.idle, Status.dnd}
+    online = [
+        member.display_name
+        for member in guild.members
+        if not member.bot and member.status in online_statuses
+    ]
+
+    lines.append(
+        f"Guild: {guild.name} ({guild.member_count} members, {len(online)} online)"
+    )
+
+    if online:
+        lines.append("Online: " + ", ".join(online[:MAX_ONLINE_LISTED]))
+
+    return "\n".join(lines)

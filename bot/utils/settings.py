@@ -30,6 +30,14 @@ EVENTS_VOICE_CHANNEL_ID: Optional[int] = config(
     default=None,
     cast=lambda v: int(v) if v else None,
 )
+# the Discord read tools are always on; posting is opt-in per deployment because
+# it is the one tool whose reach extends past the channel /ask was run in.
+# cast=bool needs no empty-string guard — decouple maps "" and "false" to False
+DISCORD_SEND_TOOL_ENABLED: bool = config(
+    "DISCORD_SEND_TOOL_ENABLED",
+    default=False,
+    cast=bool,
+)
 
 # idle-voice auto-mover (feature is off unless timeout + target are both set)
 IDLE_VOICE_TIMEOUT_SECONDS: Optional[int] = config(

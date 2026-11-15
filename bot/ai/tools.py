@@ -11,6 +11,8 @@ from openai import pydantic_function_tool
 from pydantic import BaseModel, Field
 
 from bot.ai.chat import run_web_extraction
+from bot.ai.discord_tools import DISCORD_TOOL_HANDLERS
+from bot.ai.tool_context import ToolContext
 from bot.utils.net import UnsafeUrlError, assert_public_url
 from bot.utils.settings import DGPT_SEARCH_URL, EVENTS_VOICE_CHANNEL_ID, OPENAI_API_KEY
 
@@ -84,10 +86,12 @@ def _tool_definition(model: type[BaseModel]) -> dict:
 
 
 # web search and web fetch authenticate with OPENAI_API_KEY, which is required,
-# so they are always available — only the event tool needs a feature gate
+# and the Discord read tools need no credential of their own, so all of them are
+# always available — only the event tool needs a feature gate
 TOOL_DEFINITIONS = [
     _tool_definition(WebSearch),
     _tool_definition(WebFetch),
+    *(_tool_definition(model) for model, _ in DISCORD_TOOL_HANDLERS.values()),
 ]
 
 if EVENTS_VOICE_CHANNEL_ID is not None:
@@ -95,8 +99,9 @@ if EVENTS_VOICE_CHANNEL_ID is not None:
 
 
 async def handle_create_scheduled_event(
-    args: CreateScheduledEvent, guild: discord.Guild | None
+    args: CreateScheduledEvent, ctx: ToolContext
 ) -> str:
+    guild = ctx.guild
     if guild is None:
         return json.dumps(
             {"error": "Scheduling events requires a server. It cannot be used in DMs."}
@@ -137,7 +142,7 @@ async def handle_create_scheduled_event(
         return json.dumps({"error": str(e)})
 
 
-async def handle_web_search(args: WebSearch, _guild: discord.Guild | None) -> str:
+async def handle_web_search(args: WebSearch, _ctx: ToolContext) -> str:
     payload_body = {"query": args.query, "count": args.count}
 
     headers = {
@@ -278,7 +283,7 @@ async def _fetch_page(url: str) -> tuple[str, str]:
     raise _FetchError("Too many redirects.")
 
 
-async def handle_web_fetch(args: WebFetch, _guild: discord.Guild | None) -> str:
+async def handle_web_fetch(args: WebFetch, _ctx: ToolContext) -> str:
     url = args.url.strip()
 
     try:
@@ -316,11 +321,12 @@ TOOL_HANDLERS = {
     "CreateScheduledEvent": (CreateScheduledEvent, handle_create_scheduled_event),
     "WebSearch": (WebSearch, handle_web_search),
     "WebFetch": (WebFetch, handle_web_fetch),
+    **DISCORD_TOOL_HANDLERS,
 }
 
 
 async def execute_tool_call(
-    tool_name: str, arguments_json: str, guild: discord.Guild | None
+    tool_name: str, arguments_json: str, ctx: ToolContext
 ) -> str:
     handler_entry = TOOL_HANDLERS.get(tool_name)
     if not handler_entry:
@@ -329,6 +335,6 @@ async def execute_tool_call(
     model_cls, handler_fn = handler_entry
     try:
         args = model_cls.model_validate_json(arguments_json)
-        return await handler_fn(args, guild)
+        return await handler_fn(args, ctx)
     except Exception as e:
         return json.dumps({"error": str(e)})

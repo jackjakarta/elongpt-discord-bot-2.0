@@ -8,6 +8,7 @@ from discord.ui import Button, View
 
 from .ai.chat import get_chat_completion, get_chat_context
 from .ai.image import generate_image
+from .ai.tool_context import ToolContext
 from .ai.tools import TOOL_DEFINITIONS, execute_tool_call
 from .db.completion import db_insert_completion
 from .utils import create_embed, image_to_base64, split_message
@@ -63,6 +64,14 @@ async def ask_command(
     user_name = str(interaction.user)
     context = await get_chat_context(interaction)
 
+    # the Discord tools mirror this user's permissions rather than the bot's, so
+    # who invoked the command travels with the call, not just where it landed
+    tool_ctx = ToolContext(
+        guild=interaction.guild,
+        channel=interaction.channel,
+        user=interaction.user,
+    )
+
     try:
         base64_images = []
         for file in files:
@@ -91,9 +100,7 @@ async def ask_command(
             # gather preserves order, so the tool_call_id pairing below is safe
             results = await asyncio.gather(
                 *(
-                    execute_tool_call(
-                        tc.function.name, tc.function.arguments, interaction.guild
-                    )
+                    execute_tool_call(tc.function.name, tc.function.arguments, tool_ctx)
                     for tc in message.tool_calls
                 )
             )
