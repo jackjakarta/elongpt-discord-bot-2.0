@@ -1,4 +1,4 @@
-FROM python:3.12-alpine AS builder
+FROM python:3.14-alpine AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -16,11 +16,11 @@ RUN python -m pip --python /opt/venv/bin/python install \
 # talks to DynamoDB. sts stays because botocore's default credential chain
 # reaches for it (assume-role / web identity). Using another AWS service means
 # adding its data directory here, or boto3 raises UnknownServiceError at runtime.
-RUN find /opt/venv/lib/python3.12/site-packages/botocore/data \
+RUN find /opt/venv/lib/python3.14/site-packages/botocore/data \
         -mindepth 1 -maxdepth 1 -type d \
         ! -name dynamodb ! -name sts -exec rm -rf {} +
 
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
